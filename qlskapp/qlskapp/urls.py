@@ -16,8 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, re_path, include
+from django.views.generic.base import RedirectView
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/admin/')),
     path('admin/', admin.site.urls),
+    path('api/', include('qlsk.urls')),  # Gắn toàn bộ URL từ ứng dụng qlsk
     re_path(r'ckeditor/', include('ckeditor_uploader.urls')),
 ]

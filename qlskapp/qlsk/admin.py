@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import User, HealthProfile, Plan, HealthJournal
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
+
 
 # Tùy chỉnh tiêu đề và các thông tin trang quản trị
 admin.site.site_header = "Hệ Thống Quản Lý Sức Khỏe"
@@ -12,17 +13,33 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('role', 'is_active')
     search_fields = ('username', 'email')
 
-
 @admin.register(HealthProfile)
 class HealthProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'bmi', 'water_intake', 'steps', 'heart_rate')
 
+@admin.register(Exercise)
+class ExerciseAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'duration', 'calories_burned')
 
-@admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'plan_type', 'created_at')
-    list_filter = ('plan_type',)
+@admin.register(TrainingSchedule)
+class TrainingScheduleAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date', 'time', 'created_at')
 
+@admin.register(TrainingSession)
+class TrainingSessionAdmin(admin.ModelAdmin):
+    list_display = ('schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration')
+
+@admin.register(NutritionPlan)
+class NutritionPlanAdmin(admin.ModelAdmin):
+    list_display = ('user', 'title', 'description', 'created_at')
+
+@admin.register(Reminder)
+class ReminderAdmin(admin.ModelAdmin):
+    list_display = ('user', 'reminder_type', 'time', 'message')
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'content', 'timestamp')
 
 @admin.register(HealthJournal)
 class HealthJournalAdmin(admin.ModelAdmin):

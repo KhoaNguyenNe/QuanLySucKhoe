@@ -1,14 +1,26 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet, HealthProfileViewSet, PlanViewSet, HealthJournalViewSet
+from .views import (
+    UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet
+)
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
-router.register(r'health-profiles', HealthProfileViewSet)
-router.register(r'plans', PlanViewSet)
-router.register(r'journals', HealthJournalViewSet)
+# router.register(r'health-profiles', HealthProfileViewSet)
+router.register(r'exercises', ExerciseViewSet)
+router.register(r'training-schedules', TrainingScheduleViewSet)
+router.register(r'training-sessions', TrainingSessionViewSet)
+# router.register(r'nutrition-plans', NutritionPlanViewSet)
+router.register(r'reminders', ReminderViewSet)
+router.register(r'chat-messages', ChatMessageViewSet)
+# router.register(r'health-journals', HealthJournalViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
     path('oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+    path('users/<int:user_id>/health-profile/', HealthProfileViewSet.as_view({'get': 'retrieve'}),
+         name='user-health-profile'),
+    path('users/<int:user_id>/nutrition-plans/', NutritionPlanViewSet.as_view({'get': 'list'}), name='user-plans'),
+    path('users/<int:user_id>/journals/', HealthJournalViewSet.as_view({'get': 'list'}), name='user-journals'),
 ]

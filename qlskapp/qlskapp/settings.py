@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+from ckeditor_demo.settings import CKEDITOR_UPLOAD_PATH
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,9 +46,16 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',  # Nếu dùng Google
     'allauth.socialaccount.providers.facebook',
+    'oauth2_provider',
+    'ckeditor',
+    'ckeditor_uploader',
 ]
 
+CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
+
 SITE_ID = 1  # Yêu cầu bởi Allauth
+
+AUTH_USER_MODEL = 'qlsk.User'
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -150,8 +159,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.qlsk.SessionAuthentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
 }
+

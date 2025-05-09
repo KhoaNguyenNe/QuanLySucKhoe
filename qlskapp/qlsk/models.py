@@ -59,6 +59,7 @@ class TrainingSession(models.Model):
     custom_exercise_name = models.CharField(max_length=255, null=True, blank=True)  # Bài tập tự thêm
     repetitions = models.IntegerField(null=True, blank=True)  # Số lần lặp
     duration = models.IntegerField(null=True, blank=True)  # Thời gian thực hiện (phút)
+    feedback = models.TextField(null=True, blank=True)  # Thêm dòng này
 
     def __str__(self):
         return f"Session in {self.schedule} - {self.exercise or self.custom_exercise_name}"

@@ -27,7 +27,7 @@ class TrainingScheduleAdmin(admin.ModelAdmin):
 
 @admin.register(TrainingSession)
 class TrainingSessionAdmin(admin.ModelAdmin):
-    list_display = ('schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration')
+    list_display = ('schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration', 'feedback')
 
 @admin.register(NutritionPlan)
 class NutritionPlanAdmin(admin.ModelAdmin):

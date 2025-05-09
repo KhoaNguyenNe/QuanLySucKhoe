@@ -29,7 +29,7 @@ class TrainingScheduleSerializer(serializers.ModelSerializer):
 class TrainingSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainingSession
-        fields = ['id', 'schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration']
+        fields = ['id', 'schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration', 'feedback']
 
 # Nutrition Plan Serializer
 class NutritionPlanSerializer(serializers.ModelSerializer):

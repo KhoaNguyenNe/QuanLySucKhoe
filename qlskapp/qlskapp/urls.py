@@ -21,6 +21,6 @@ from django.views.generic.base import RedirectView
 urlpatterns = [
     path('', RedirectView.as_view(url='/admin/')),
     path('admin/', admin.site.urls),
-    path('api/', include('qlsk.urls')),  # Gắn toàn bộ URL từ ứng dụng qlsk
+    path('api/', include('qlsk.urls')),
     re_path(r'ckeditor/', include('ckeditor_uploader.urls')),
 ]

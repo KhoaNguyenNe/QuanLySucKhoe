@@ -39,13 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'qlsk.apps.AuthenticationConfig',
     'rest_framework',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
     'corsheaders',
     'django.contrib.sites',  # Cần thiết cho django-allauth
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',  # Nếu dùng Google
-    'allauth.socialaccount.providers.facebook',
     'oauth2_provider',
     'ckeditor',
     'ckeditor_uploader',
@@ -53,7 +53,7 @@ INSTALLED_APPS = [
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
-SITE_ID = 1  # Yêu cầu bởi Allauth
+SITE_ID = 1 
 
 AUTH_USER_MODEL = 'qlsk.User'
 
@@ -73,6 +73,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Backend mặc định của Django
     'allauth.account.auth_backends.AuthenticationBackend',  # Backend của Allauth
 ]
+
+LOGIN_REDIRECT_URL = '/'
 
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']

@@ -14,7 +14,7 @@
   </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 3.13 virtualenv at C:\Users\ASUS\Downloads\Learn\Cac_CNLT_HienDai\venv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12 (Django)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

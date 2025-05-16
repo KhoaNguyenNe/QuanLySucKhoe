@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Text } from "react-native-paper";
 
 import Background from "../components/Background";
@@ -12,24 +12,26 @@ import { theme } from "../core/theme";
 import { emailValidator } from "../helpers/emailValidator";
 import { passwordValidator } from "../helpers/passwordValidator";
 import { nameValidator } from "../helpers/nameValidator";
+import { register } from "../api";
 
 export default function RegisterScreen({ navigation }) {
-  const [name, setName] = useState({ value: "", error: "" });
+  const [username, setUsername] = useState({ value: "", error: "" });
   const [email, setEmail] = useState({ value: "", error: "" });
   const [password, setPassword] = useState({ value: "", error: "" });
   const [rePassword, setRePassword] = useState({ value: "", error: "" });
+  const [loading, setLoading] = useState(false);
 
-  const onSignUpPressed = () => {
-    const nameError = nameValidator(name.value);
+  const onSignUpPressed = async () => {
+    const usernameError = nameValidator(username.value);
     const emailError = emailValidator(email.value);
     const passwordError = passwordValidator(password.value);
     if (
       emailError ||
       passwordError ||
-      nameError ||
+      usernameError ||
       rePassword.value !== password.value
     ) {
-      setName({ ...name, error: nameError });
+      setUsername({ ...username, error: usernameError });
       setEmail({ ...email, error: emailError });
       setPassword({ ...password, error: passwordError });
       if (rePassword.value !== password.value) {
@@ -37,10 +39,41 @@ export default function RegisterScreen({ navigation }) {
       }
       return;
     }
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "HomeScreen" }],
-    });
+
+    try {
+      setLoading(true);
+      const response = await register(
+        username.value,
+        email.value,
+        password.value,
+        rePassword.value,
+        "user" // Mặc định đăng ký là user
+      );
+
+      if (response.data) {
+        Alert.alert("Thành công", "Đăng ký tài khoản thành công!", [
+          {
+            text: "Đăng nhập",
+            onPress: () => navigation.replace("LoginScreen"),
+          },
+        ]);
+      }
+    } catch (error) {
+      let errorMessage = "Đã có lỗi xảy ra";
+      if (error.response) {
+        if (error.response.data.username) {
+          errorMessage = "Tên đăng nhập đã tồn tại";
+        } else if (error.response.data.email) {
+          errorMessage = "Email đã tồn tại";
+        } else if (error.response.data.password) {
+          errorMessage = "Mật khẩu không hợp lệ";
+        }
+      }
+      console.log("Register error:", error);
+      Alert.alert("Lỗi", errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,12 +82,12 @@ export default function RegisterScreen({ navigation }) {
       <Logo />
       <Header>Chào mừng.</Header>
       <TextInput
-        label="Họ tên"
+        label="Tên đăng nhập"
         returnKeyType="next"
-        value={name.value}
-        onChangeText={(text) => setName({ value: text, error: "" })}
-        error={!!name.error}
-        errorText={name.error}
+        value={username.value}
+        onChangeText={(text) => setUsername({ value: text, error: "" })}
+        error={!!username.error}
+        errorText={username.error}
       />
       <TextInput
         label="Email"
@@ -90,8 +123,10 @@ export default function RegisterScreen({ navigation }) {
         mode="contained"
         onPress={onSignUpPressed}
         style={{ marginTop: 24 }}
+        loading={loading}
+        disabled={loading}
       >
-        Tiếp tục
+        Đăng ký
       </Button>
       <View style={styles.row}>
         <Text>Tôi đã có tài khoản!</Text>

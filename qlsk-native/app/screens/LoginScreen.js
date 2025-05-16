@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { TouchableOpacity, StyleSheet, View } from "react-native";
+import { TouchableOpacity, StyleSheet, View, Alert } from "react-native";
 import { Text } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import Background from "../components/Background";
 import Logo from "../components/Logo";
@@ -11,12 +12,14 @@ import BackButton from "../components/BackButton";
 import { theme } from "../core/theme";
 import { emailValidator } from "../helpers/emailValidator";
 import { passwordValidator } from "../helpers/passwordValidator";
+import { login } from "../api";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState({ value: "", error: "" });
   const [password, setPassword] = useState({ value: "", error: "" });
+  const [loading, setLoading] = useState(false);
 
-  const onLoginPressed = () => {
+  const onLoginPressed = async () => {
     const emailError = emailValidator(email.value);
     const passwordError = passwordValidator(password.value);
     if (emailError || passwordError) {
@@ -24,10 +27,28 @@ export default function LoginScreen({ navigation }) {
       setPassword({ ...password, error: passwordError });
       return;
     }
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "HomeScreen" }],
-    });
+
+    try {
+      setLoading(true);
+      const response = await login(email.value, password.value);
+      if (response.data && response.data.token) {
+        await AsyncStorage.setItem("token", response.data.token);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "HomeScreen" }],
+        });
+      } else {
+        Alert.alert("Lỗi", "Không nhận được token từ server");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      Alert.alert(
+        "Lỗi đăng nhập",
+        "Email hoặc mật khẩu không đúng. Vui lòng thử lại!"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,7 +84,7 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.forgot}>Quên mật khẩu?</Text>
         </TouchableOpacity>
       </View>
-      <Button mode="contained" onPress={onLoginPressed}>
+      <Button mode="contained" onPress={onLoginPressed} loading={loading}>
         Đăng nhập
       </Button>
       <View style={styles.row}>

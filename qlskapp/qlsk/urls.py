@@ -2,9 +2,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView,
-    RegisterView, LoginView
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, RegisterView
 )
+from rest_framework.authtoken.views import obtain_auth_token
+from django.contrib.auth import views as auth_views
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -17,7 +18,15 @@ router.register(r'chat-messages', ChatMessageViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('register/', RegisterView.as_view(), name='register'),
-    path('login/', LoginView.as_view(), name='login'),
+    # Authentication URLs
+    path('auth/token/', obtain_auth_token, name='api_token_auth'),
+    path('auth/login/', auth_views.LoginView.as_view(), name='login'),
+    path('auth/logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('auth/password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
+    path('auth/password-reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
+    path('auth/reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('auth/reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    # Other URLs
     path('oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     path('auth/', include('dj_rest_auth.urls')),
     path('auth/registration/', include('dj_rest_auth.registration.urls')),

@@ -3,24 +3,26 @@ from rest_framework.response import Response
 from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
 from .serializers import (
     UserSerializer, HealthProfileSerializer, ExerciseSerializer, TrainingScheduleSerializer,
-    TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer
+    TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
+    RegisterSerializer
 )
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from .permissions import IsOwnerOrReadOnly, IsExpert, IsOwnerOrExpert
-from django.contrib.auth import authenticate
-from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework import serializers
-from .serializers import RegisterSerializer
 
 # User ViewSet
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsOwnerOrReadOnly]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # Health Profile ViewSet
 class HealthProfileViewSet(viewsets.ViewSet):
@@ -183,22 +185,15 @@ class FlexibleReminderView(APIView):
         )
         return Response({'detail': 'Reminder created.', 'reminder_id': reminder.id}, status=201)
 
-
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key, 'user_id': user.id, 'role': user.role}, status=201)
-        return Response(serializer.errors, status=400)
-
-class LoginView(ObtainAuthToken):
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key, 'user_id': user.id, 'role': user.role})
+            return Response({
+                "message": "Đăng ký thành công",
+                "user": UserSerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

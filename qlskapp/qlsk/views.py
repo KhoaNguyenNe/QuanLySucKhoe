@@ -1,0 +1,204 @@
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
+from .serializers import (
+    UserSerializer, HealthProfileSerializer, ExerciseSerializer, TrainingScheduleSerializer,
+    TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer
+)
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework.views import APIView
+from rest_framework.decorators import action
+from .permissions import IsOwnerOrReadOnly, IsExpert, IsOwnerOrExpert
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework import serializers
+from .serializers import RegisterSerializer
+
+# User ViewSet
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+# Health Profile ViewSet
+class HealthProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsOwnerOrExpert]
+    #Phương thức chỉ xử lý GET
+    def retrieve(self, request, user_id=None):
+        profile = HealthProfile.objects.filter(user_id=user_id).first()
+        if profile:
+            serializer = HealthProfileSerializer(profile)
+            return Response(serializer.data, status = status.HTTP_200_OK)
+        return Response({"detail": "Not found."}, status=404)
+
+
+# Exercise ViewSet
+class ExerciseViewSet(viewsets.ModelViewSet):
+    queryset = Exercise.objects.all()
+    serializer_class = ExerciseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+# Training Schedule ViewSet
+class TrainingScheduleViewSet(viewsets.ModelViewSet):
+    queryset = TrainingSchedule.objects.all()
+    serializer_class = TrainingScheduleSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+# Training Session ViewSet
+class TrainingSessionViewSet(viewsets.ModelViewSet):
+    queryset = TrainingSession.objects.all()
+    serializer_class = TrainingSessionSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+    @action(detail=True, methods=['post'])
+    def add_feedback(self, request, pk=None):
+        session = self.get_object()
+        feedback = request.data.get('feedback')
+        if feedback:
+            session.feedback = feedback
+            session.save()
+            return Response({'detail': 'Feedback saved.'}, status=200)
+        return Response({'detail': 'Feedback is required.'}, status=400)
+
+# Nutrition Plan ViewSet
+class NutritionPlanViewSet(viewsets.ViewSet):
+    permission_classes = [IsExpert]
+    def list(self, request, user_id=None):
+        plans = NutritionPlan.objects.filter(user_id=user_id)
+        serializer = NutritionPlanSerializer(plans, many=True)
+        return Response(serializer.data, status = status.HTTP_200_OK)
+
+# Reminder ViewSet
+class ReminderViewSet(viewsets.ModelViewSet):
+    queryset = Reminder.objects.all()
+    serializer_class = ReminderSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+# Chat Message ViewSet
+class ChatMessageViewSet(viewsets.ModelViewSet):
+    queryset = ChatMessage.objects.all()
+    serializer_class = ChatMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+# Health Journal ViewSet
+class HealthJournalViewSet(viewsets.ViewSet):
+    permission_classes = [IsOwnerOrReadOnly]
+    def list(self, request, user_id=None):
+        journals = HealthJournal.objects.filter(user_id=user_id)
+        serializer = HealthJournalSerializer(journals, many=True)
+        return Response(serializer.data, status = status.HTTP_200_OK)
+
+class UserStatisticsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, user_id=None):
+        # Chỉ cho phép user xem của mình hoặc chuyên gia xem của khách hàng
+        if request.user.role == 'user' and request.user.id != user_id:
+            return Response({'detail': 'Permission denied.'}, status=403)
+        # Lấy dữ liệu HealthProfile, TrainingSchedule, NutritionPlan
+        now = timezone.now().date()
+        # Thống kê tuần
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+        year_ago = now - timedelta(days=365)
+        # Lấy health profile
+        profile = HealthProfile.objects.filter(user_id=user_id).first()
+        # Lấy lịch tập tuần/tháng/năm
+        week_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=week_ago)
+        month_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=month_ago)
+        year_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=year_ago)
+        # Tổng calo tiêu thụ
+        def total_calories(sessions):
+            return sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+        data = {
+            'profile': HealthProfileSerializer(profile).data if profile else None,
+            'week': {
+                'total_sessions': week_sessions.count(),
+                'total_calories': total_calories(week_sessions),
+            },
+            'month': {
+                'total_sessions': month_sessions.count(),
+                'total_calories': total_calories(month_sessions),
+            },
+            'year': {
+                'total_sessions': year_sessions.count(),
+                'total_calories': total_calories(year_sessions),
+            }
+        }
+        return Response(data, status=200)
+
+class NutritionSuggestionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, user_id=None):
+        # Chỉ cho phép user xem của mình hoặc chuyên gia xem của khách hàng
+        if request.user.role == 'user' and request.user.id != user_id:
+            return Response({'detail': 'Permission denied.'}, status=403)
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            return Response({'detail': 'User not found.'}, status=404)
+        # Gợi ý thực đơn đơn giản dựa trên mục tiêu sức khỏe
+        goal = (user.health_goal or '').lower()
+        if 'tăng cơ' in goal:
+            suggestion = 'Ăn nhiều protein (thịt, cá, trứng, sữa), rau xanh, hạn chế tinh bột xấu.'
+        elif 'giảm cân' in goal:
+            suggestion = 'Ăn nhiều rau xanh, hạn chế tinh bột, ưu tiên thực phẩm ít calo, uống đủ nước.'
+        elif 'duy trì' in goal or 'sức khỏe' in goal:
+            suggestion = 'Ăn đa dạng, cân bằng các nhóm chất, duy trì chế độ ăn lành mạnh.'
+        else:
+            suggestion = 'Hãy nhập mục tiêu sức khỏe để nhận gợi ý thực đơn phù hợp.'
+        return Response({'suggestion': suggestion}, status=200)
+
+class ChatHistoryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, user_id=None, expert_id=None):
+        # Chỉ cho phép user hoặc chuyên gia xem lịch sử chat của mình
+        if request.user.role == 'user' and request.user.id != user_id:
+            return Response({'detail': 'Permission denied.'}, status=403)
+        if request.user.role == 'expert' and request.user.id != expert_id:
+            return Response({'detail': 'Permission denied.'}, status=403)
+        messages = ChatMessage.objects.filter(sender_id=user_id, receiver_id=expert_id) | ChatMessage.objects.filter(sender_id=expert_id, receiver_id=user_id)
+        messages = messages.order_by('timestamp')
+        serializer = ChatMessageSerializer(messages, many=True)
+        return Response(serializer.data, status=200)
+
+class FlexibleReminderView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        reminder_type = request.data.get('reminder_type')
+        time = request.data.get('time')
+        message = request.data.get('message')
+        date = request.data.get('date')  # Ngày nhắc nhở (tùy chọn)
+        if not (reminder_type and time and message):
+            return Response({'detail': 'Missing required fields.'}, status=400)
+        reminder = Reminder.objects.create(
+            user=request.user,
+            reminder_type=reminder_type,
+            time=time,
+            message=message
+        )
+        return Response({'detail': 'Reminder created.', 'reminder_id': reminder.id}, status=201)
+
+
+class RegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({'token': token.key, 'user_id': user.id, 'role': user.role}, status=201)
+        return Response(serializer.errors, status=400)
+
+class LoginView(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key, 'user_id': user.id, 'role': user.role})

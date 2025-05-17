@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { TouchableOpacity, StyleSheet, View, Alert } from "react-native";
+import {
+  TouchableOpacity,
+  StyleSheet,
+  View,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { Text } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -31,20 +37,21 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await login(email.value, password.value);
-      if (response.data && response.data.token) {
-        await AsyncStorage.setItem("token", response.data.token);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "HomeScreen" }],
-        });
-      } else {
-        Alert.alert("Lỗi", "Không nhận được token từ server");
-      }
+
+      // Lưu JWT token vào AsyncStorage
+      await AsyncStorage.setItem("access_token", response.data.access);
+      await AsyncStorage.setItem("refresh_token", response.data.refresh);
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "HomeScreen" }],
+      });
     } catch (error) {
       console.error("Login error:", error);
       Alert.alert(
         "Lỗi đăng nhập",
-        "Email hoặc mật khẩu không đúng. Vui lòng thử lại!"
+        error.response?.data?.detail ||
+          "Email hoặc mật khẩu không đúng. Vui lòng thử lại!"
       );
     } finally {
       setLoading(false);

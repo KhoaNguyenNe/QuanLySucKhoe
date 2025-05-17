@@ -36,7 +36,6 @@ urlpatterns = [
     path('oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     
     # Other Authentication URLs
-    path('auth/token/', obtain_auth_token, name='api_token_auth'),
     path('auth/login/', auth_views.LoginView.as_view(), name='login'),
     path('auth/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('auth/password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),

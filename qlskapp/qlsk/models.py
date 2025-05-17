@@ -9,6 +9,7 @@ class User(AbstractUser):
         ('expert', 'Nutritionist/Trainer'),
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    email = models.EmailField(unique=True, verbose_name='email address')
     height = models.FloatField(null=True, blank=True)  # Chiều cao (cm)
     weight = models.FloatField(null=True, blank=True)  # Cân nặng (kg)
     age = models.IntegerField(null=True, blank=True)  # Tuổi
@@ -98,6 +99,7 @@ class ChatMessage(models.Model):
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages")
     content = models.TextField()  # Nội dung tin nhắn
     timestamp = models.DateTimeField(auto_now_add=True)  # Thời gian gửi tin nhắn
+    is_read = models.BooleanField(default=False)  # Trạng thái đã đọc
 
     def __str__(self):
         return f"Message from {self.sender.username} to {self.receiver.username} at {self.timestamp}"

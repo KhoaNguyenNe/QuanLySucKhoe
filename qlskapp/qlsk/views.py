@@ -197,3 +197,50 @@ class RegisterView(APIView):
                 "user": UserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# User Profile View
+class UserProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        
+        # Lấy thông tin health profile nếu có
+        try:
+            health_profile = user.health_profile
+            health_serializer = HealthProfileSerializer(health_profile)
+            health_data = health_serializer.data
+        except HealthProfile.DoesNotExist:
+            health_data = None
+
+        # Lấy thông tin thống kê
+        now = timezone.now().date()
+        week_ago = now - timedelta(days=7)
+        
+        # Lấy số buổi tập trong tuần
+        week_sessions = TrainingSession.objects.filter(
+            schedule__user=user,
+            schedule__date__gte=week_ago
+        ).count()
+        
+        # Lấy số nhắc nhở
+        reminders = Reminder.objects.filter(user=user).count()
+        
+        # Lấy số tin nhắn chưa đọc
+        unread_messages = ChatMessage.objects.filter(
+            receiver=user,
+            is_read=False
+        ).count()
+
+        response_data = {
+            'user': serializer.data,
+            'health_profile': health_data,
+            'statistics': {
+                'weekly_sessions': week_sessions,
+                'total_reminders': reminders,
+                'unread_messages': unread_messages
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)

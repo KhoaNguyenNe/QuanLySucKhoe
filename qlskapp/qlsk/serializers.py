@@ -82,6 +82,12 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Mật khẩu không khớp"})
+        
+        # Kiểm tra email đã tồn tại chưa
+        email = attrs.get('email')
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"email": "Email này đã được sử dụng"})
+        
         return attrs
 
     def create(self, validated_data):

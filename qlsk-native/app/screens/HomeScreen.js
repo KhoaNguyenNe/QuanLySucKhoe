@@ -50,7 +50,12 @@ export default function HomeScreen({ navigation }) {
             Email: <Text style={styles.value}>{userInfo.user.email}</Text>
           </Text>
           <Text style={styles.label}>
-            Vai trò: <Text style={styles.value}>{userInfo.user.role}</Text>
+            Vai trò:{" "}
+            <Text style={styles.value}>
+              {userInfo.user.role === "expert"
+                ? "Chuyên gia/HLV"
+                : "Người dùng"}
+            </Text>
           </Text>
         </View>
       ) : null}

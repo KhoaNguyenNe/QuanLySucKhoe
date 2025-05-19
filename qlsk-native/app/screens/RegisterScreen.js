@@ -19,6 +19,7 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState({ value: "", error: "" });
   const [password, setPassword] = useState({ value: "", error: "" });
   const [rePassword, setRePassword] = useState({ value: "", error: "" });
+  const [role, setRole] = useState("user");
   const [loading, setLoading] = useState(false);
 
   const onSignUpPressed = async () => {
@@ -47,7 +48,7 @@ export default function RegisterScreen({ navigation }) {
         email.value,
         password.value,
         rePassword.value,
-        "user" // Mặc định đăng ký là user
+        role // Truyền role đã chọn
       );
 
       if (response.data) {
@@ -119,6 +120,26 @@ export default function RegisterScreen({ navigation }) {
         errorText={rePassword.error}
         secureTextEntry
       />
+      <View style={styles.roleContainer}>
+        <TouchableOpacity
+          style={styles.radioOption}
+          onPress={() => setRole("user")}
+        >
+          <View style={styles.radioCircle}>
+            {role === "user" && <View style={styles.radioDot} />}
+          </View>
+          <Text style={styles.radioLabel}>Người dùng</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.radioOption}
+          onPress={() => setRole("expert")}
+        >
+          <View style={styles.radioCircle}>
+            {role === "expert" && <View style={styles.radioDot} />}
+          </View>
+          <Text style={styles.radioLabel}>Chuyên gia/HLV</Text>
+        </TouchableOpacity>
+      </View>
       <Button
         mode="contained"
         onPress={onSignUpPressed}
@@ -148,5 +169,37 @@ const styles = StyleSheet.create({
   link: {
     fontWeight: "bold",
     color: theme.colors.primary,
+  },
+  roleContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  radioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 12,
+  },
+  radioCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+    backgroundColor: "#fff",
+  },
+  radioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.primary,
+  },
+  radioLabel: {
+    fontSize: 16,
   },
 });

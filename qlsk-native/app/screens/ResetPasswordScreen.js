@@ -9,9 +9,10 @@ import { emailValidator } from "../helpers/emailValidator";
 import { Alert } from "react-native";
 import { sendForgotPasswordOTP } from "../api";
 
-export default function ResetPasswordScreen({ navigation }) {
+export default function ResetPasswordScreen({ navigation, route }) {
   const [email, setEmail] = useState({ value: "", error: "" });
   const [loading, setLoading] = useState(false);
+  const isChangePassword = route.params?.isChangePassword || false;
 
   const handleSendOTP = async () => {
     const emailError = emailValidator(email.value);
@@ -29,7 +30,10 @@ export default function ResetPasswordScreen({ navigation }) {
           {
             text: "Nhập mã OTP",
             onPress: () =>
-              navigation.navigate("VerifyOTPScreen", { email: email.value }),
+              navigation.navigate("VerifyOTPScreen", {
+                email: email.value,
+                isChangePassword: isChangePassword,
+              }),
           },
         ]
       );
@@ -48,7 +52,7 @@ export default function ResetPasswordScreen({ navigation }) {
     <Background>
       <BackButton goBack={navigation.goBack} />
       <Logo />
-      <Header>Quên mật khẩu</Header>
+      <Header>{isChangePassword ? "Đổi mật khẩu" : "Quên mật khẩu"}</Header>
       <TextInput
         label="Email"
         returnKeyType="done"

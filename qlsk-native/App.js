@@ -12,6 +12,7 @@ import {
   HomeScreen,
 } from "./app/screens";
 import VerifyOTPScreen from "./app/screens/VerifyOTPScreen";
+import ProfileScreen from "./app/screens/ProfileScreen";
 
 const Stack = createStackNavigator();
 
@@ -34,6 +35,7 @@ export default function App() {
             component={ResetPasswordScreen}
           />
           <Stack.Screen name="VerifyOTPScreen" component={VerifyOTPScreen} />
+          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>

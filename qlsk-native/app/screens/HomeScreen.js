@@ -27,7 +27,6 @@ export default function HomeScreen({ navigation }) {
       const response = await getUserProfile();
       setUserInfo(response.data);
     } catch (error) {
-      console.log(error);
       Alert.alert("Lỗi", "Không thể lấy thông tin người dùng");
     } finally {
       setLoading(false);

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 import Background from "../components/Background";
 import BackButton from "../components/BackButton";
 import Logo from "../components/Logo";
@@ -7,24 +6,49 @@ import Header from "../components/Header";
 import TextInput from "../components/TextInput";
 import Button from "../components/Button";
 import { emailValidator } from "../helpers/emailValidator";
+import { Alert } from "react-native";
+import { sendForgotPasswordOTP } from "../api";
 
 export default function ResetPasswordScreen({ navigation }) {
   const [email, setEmail] = useState({ value: "", error: "" });
+  const [loading, setLoading] = useState(false);
 
-  const sendResetPasswordEmail = () => {
+  const handleSendOTP = async () => {
     const emailError = emailValidator(email.value);
     if (emailError) {
       setEmail({ ...email, error: emailError });
       return;
     }
-    navigation.navigate("LoginScreen");
+    try {
+      setLoading(true);
+      await sendForgotPasswordOTP(email.value);
+      Alert.alert(
+        "Thành công",
+        "Mã OTP đã được gửi về email. Vui lòng kiểm tra email để lấy mã OTP.",
+        [
+          {
+            text: "Nhập mã OTP",
+            onPress: () =>
+              navigation.navigate("VerifyOTPScreen", { email: email.value }),
+          },
+        ]
+      );
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Lỗi",
+        error.response?.data?.error || "Không thể gửi OTP. Vui lòng thử lại!"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Background>
       <BackButton goBack={navigation.goBack} />
       <Logo />
-      <Header>Đặt lại mật khẩu.</Header>
+      <Header>Quên mật khẩu</Header>
       <TextInput
         label="Email"
         returnKeyType="done"
@@ -36,14 +60,16 @@ export default function ResetPasswordScreen({ navigation }) {
         autoCompleteType="email"
         textContentType="emailAddress"
         keyboardType="email-address"
-        description="Bạn sẽ nhận được email chứa liên kết đặt lại mật khẩu."
+        description="Nhập email để nhận mã OTP đặt lại mật khẩu."
       />
       <Button
         mode="contained"
-        onPress={sendResetPasswordEmail}
+        onPress={handleSendOTP}
         style={{ marginTop: 16 }}
+        loading={loading}
+        disabled={loading}
       >
-        Tiếp tục
+        Gửi mã OTP
       </Button>
     </Background>
   );

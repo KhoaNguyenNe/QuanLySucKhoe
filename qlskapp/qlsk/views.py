@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP
 from .serializers import (
     UserSerializer, HealthProfileSerializer, ExerciseSerializer, TrainingScheduleSerializer,
     TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
@@ -11,6 +11,9 @@ from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from .permissions import IsOwnerOrReadOnly, IsExpert, IsOwnerOrExpert
+import random
+from django.core.mail import send_mail
+from django.contrib.auth import get_user_model
 
 # User ViewSet
 class UserViewSet(viewsets.ModelViewSet):
@@ -244,3 +247,46 @@ class UserProfileView(APIView):
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+
+class SendOTPView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email là bắt buộc'}, status=400)
+        otp = str(random.randint(100000, 999999))
+        PasswordResetOTP.objects.create(email=email, otp=otp)
+        send_mail(
+            'Mã OTP đặt lại mật khẩu',
+            f'Mã OTP của bạn là: {otp}',
+            'no-reply@yourdomain.com',
+            [email],
+        )
+        return Response({'message': 'OTP đã được gửi về email'}, status=200)
+
+class ConfirmOTPView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def post(self, request):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+        new_password = request.data.get('new_password')
+        if not all([email, otp, new_password]):
+            return Response({'error': 'Thiếu thông tin'}, status=400)
+        try:
+            otp_obj = PasswordResetOTP.objects.filter(email=email, otp=otp, is_used=False).latest('created_at')
+        except PasswordResetOTP.DoesNotExist:
+            return Response({'error': 'OTP không hợp lệ'}, status=400)
+        # Kiểm tra thời gian hết hạn (ví dụ 10 phút)
+        if timezone.now() - otp_obj.created_at > timedelta(minutes=10):
+            return Response({'error': 'OTP đã hết hạn'}, status=400)
+        # Đổi mật khẩu
+        User = get_user_model()
+        try:
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+            otp_obj.is_used = True
+            otp_obj.save()
+            return Response({'message': 'Đổi mật khẩu thành công'}, status=200)
+        except User.DoesNotExist:
+            return Response({'error': 'Không tìm thấy user'}, status=404)

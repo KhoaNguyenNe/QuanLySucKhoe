@@ -3,64 +3,97 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE = "http://26.77.196.96:8000/api/";
 
+export const API_ENDPOINTS = {
+  LOGIN: "auth/jwt/token/",
+  REGISTER: "register/",
+  PROFILE: "auth/profile/",
+  PASSWORD_RESET: "auth/password/reset/",
+  SEND_OTP: "auth/password/send-otp/",
+  VERIFY_OTP: "auth/password/confirm-otp/",
+};
+
+// Các endpoint public không cần token
+const publicEndpoints = [
+  API_ENDPOINTS.LOGIN,
+  API_ENDPOINTS.REGISTER,
+  API_ENDPOINTS.SEND_OTP,
+  API_ENDPOINTS.VERIFY_OTP,
+];
+
 const api = axios.create({
   baseURL: API_BASE,
 });
 
-// Thêm interceptor để tự động thêm token vào header
+// Interceptor thêm token cho các API cần xác thực
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem("access_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (!publicEndpoints.some((ep) => config.url.endsWith(ep))) {
+      const token = await AsyncStorage.getItem("access_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
-
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Thêm interceptor để xử lý refresh token
+// Interceptor refresh token chỉ cho các API cần xác thực
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Nếu lỗi 401 và chưa thử refresh token
-    if (error.response.status === 401 && !originalRequest._retry) {
+    if (publicEndpoints.some((ep) => originalRequest.url.endsWith(ep))) {
+      return Promise.reject(error);
+    }
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
-
+      const refreshToken = await AsyncStorage.getItem("refresh_token");
+      if (!refreshToken) {
+        await AsyncStorage.removeItem("access_token");
+        await AsyncStorage.removeItem("refresh_token");
+        return Promise.reject(error);
+      }
       try {
-        const refreshToken = await AsyncStorage.getItem("refresh_token");
         const response = await axios.post(
           `${API_BASE}auth/jwt/token/refresh/`,
-          {
-            refresh: refreshToken,
-          }
+          { refresh: refreshToken }
         );
-
         const { access } = response.data;
         await AsyncStorage.setItem("access_token", access);
-
-        // Thử lại request ban đầu với token mới
         originalRequest.headers.Authorization = `Bearer ${access}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Nếu refresh token cũng hết hạn, xóa token và chuyển về màn hình login
         await AsyncStorage.removeItem("access_token");
         await AsyncStorage.removeItem("refresh_token");
         return Promise.reject(refreshError);
       }
     }
-
     return Promise.reject(error);
   }
 );
 
+// API gửi OTP quên mật khẩu (public)
+export const sendForgotPasswordOTP = (email) => {
+  return api.post(API_ENDPOINTS.SEND_OTP, { email });
+};
+
+// API xác nhận OTP và đổi mật khẩu (public)
+export const verifyForgotPasswordOTP = (email, otp, newPassword) => {
+  return api.post(API_ENDPOINTS.VERIFY_OTP, {
+    email,
+    otp,
+    new_password: newPassword,
+  });
+};
+
+// Các API khác (cần xác thực)
 export const register = (username, email, password, password2, role) => {
-  return api.post(`register/`, {
+  return api.post(API_ENDPOINTS.REGISTER, {
     username,
     email,
     password,
@@ -70,14 +103,18 @@ export const register = (username, email, password, password2, role) => {
 };
 
 export const login = (username, password) => {
-  return api.post(`auth/jwt/token/`, {
+  return api.post(API_ENDPOINTS.LOGIN, {
     username,
     password,
   });
 };
 
 export const getUserProfile = () => {
-  return api.get("auth/profile/");
+  return api.get(API_ENDPOINTS.PROFILE);
+};
+
+export const requestPasswordReset = (email) => {
+  return api.post(API_ENDPOINTS.PASSWORD_RESET, { email });
 };
 
 export default api;

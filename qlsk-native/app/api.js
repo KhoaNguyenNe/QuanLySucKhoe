@@ -113,8 +113,17 @@ export const getUserProfile = () => {
   return api.get(API_ENDPOINTS.PROFILE);
 };
 
+export const updateUserProfile = (data) => {
+  return api.put(API_ENDPOINTS.PROFILE, data);
+};
+
 export const requestPasswordReset = (email) => {
   return api.post(API_ENDPOINTS.PASSWORD_RESET, { email });
 };
+
+export const getReminders = () => api.get("/reminders/");
+export const createReminder = (data) => api.post("/reminders/", data);
+export const deleteReminder = (id) => api.delete(`/reminders/${id}/`);
+export const updateReminder = (id, data) => api.put(`/reminders/${id}/`, data);
 
 export default api;

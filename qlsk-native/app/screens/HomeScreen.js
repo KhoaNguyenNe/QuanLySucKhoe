@@ -62,7 +62,9 @@ export default function HomeScreen({ navigation }) {
       icon: "bell-ring",
       label: "Nhắc nhở & Theo dõi",
       color: "#2d6cf5",
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate("");
+      },
     },
     {
       icon: "notebook-edit",

@@ -48,7 +48,6 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework.authtoken',
-    'dj_rest_auth',
     'corsheaders',
     'oauth2_provider',
     'ckeditor',
@@ -56,6 +55,8 @@ INSTALLED_APPS = [
     'drf_yasg',
 
     'django.contrib.sites',  # Cần thiết cho django-allauth
+
+    'dj_rest_auth',
 
     #Đăng nhập bằng tài khoản google, facebook
     'allauth',
@@ -93,7 +94,10 @@ AUTHENTICATION_BACKENDS = [
 # ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 # ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 
+
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
 
 import pymysql
 
@@ -200,6 +204,7 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
+
 # OAuth2 Settings
 OAUTH2_PROVIDER = {
     'SCOPES': {
@@ -264,6 +269,8 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+SOCIALACCOUNT_STORE_TOKENS = True
+
 # Cấu hình Allauth
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
@@ -275,7 +282,7 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Cấu hình URL
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/callback/'
 LOGOUT_REDIRECT_URL = '/'
 
 #Cấu hình email

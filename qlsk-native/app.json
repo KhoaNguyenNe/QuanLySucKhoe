@@ -22,6 +22,11 @@
     },
     "web": {
       "favicon": "./assets/app.png"
-    }
+    },
+    "extra": {
+      "GOOGLE_CLIENT_ID": "375798059573-mo03oq4f0a8a1hghu61vra7vr55m358s.apps.googleusercontent.com",
+      "FACEBOOK_CLIENT_ID": "1886366425472548"
+    },
+    "scheme": "exlogrn"
   }
 }

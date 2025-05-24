@@ -19,6 +19,7 @@ import { theme } from "../core/theme";
 import { emailValidator } from "../helpers/emailValidator";
 import { passwordValidator } from "../helpers/passwordValidator";
 import { login } from "../api";
+import SocialLoginButtons from "../components/SocialLoginButtons";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState({ value: "", error: "" });
@@ -64,16 +65,16 @@ export default function LoginScreen({ navigation }) {
       <Logo />
       <Header>Chào bạn</Header>
       <TextInput
-        label="Email"
+        label="Tài khoản"
         returnKeyType="next"
         value={email.value}
         onChangeText={(text) => setEmail({ value: text, error: "" })}
         error={!!email.error}
         errorText={email.error}
         autoCapitalize="none"
-        autoCompleteType="email"
-        textContentType="emailAddress"
-        keyboardType="email-address"
+        autoCompleteType="username"
+        textContentType="username"
+        keyboardType="username"
       />
       <TextInput
         label="Mật khẩu"
@@ -102,6 +103,7 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.link}>Tạo tài khoản!</Text>
         </TouchableOpacity>
       </View>
+      <SocialLoginButtons />
     </Background>
   );
 }

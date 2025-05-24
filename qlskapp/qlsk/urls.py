@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, RegisterView, UserProfileView, SendOTPView, ConfirmOTPView
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, RegisterView, UserProfileView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth import views as auth_views
@@ -46,6 +46,10 @@ urlpatterns = [
     
     # REST Auth URLs
     path('auth/', include('dj_rest_auth.urls')),
+    path('auth/', include('dj_rest_auth.registration.urls')),
+    path('auth/', include('allauth.socialaccount.urls')),
+    path('auth/google-login/', GoogleLoginAPIView.as_view(), name='google-login'),
+    
 
     
     # Other URLs

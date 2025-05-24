@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { Button } from "react-native-paper";
-import { getUserProfile } from "../api";
+import { getUserProfile, updateUserProfile } from "../api";
 
 export default function ProfileScreen({ navigation }) {
   const [userInfo, setUserInfo] = useState(null);
@@ -25,10 +25,30 @@ export default function ProfileScreen({ navigation }) {
   const [water, setWater] = useState("");
   const [steps, setSteps] = useState("");
   const [heartRate, setHeartRate] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // Thêm hàm calculateBMI
+  const calculateBMI = () => {
+    if (height && weight) {
+      const heightInMeters = parseFloat(height) / 100;
+      const weightInKg = parseFloat(weight);
+      const bmiValue = (weightInKg / (heightInMeters * heightInMeters)).toFixed(
+        1
+      );
+      setBMI(bmiValue);
+    } else {
+      setBMI("");
+    }
+  };
+
+  // Cập nhật BMI khi height hoặc weight thay đổi
+  useEffect(() => {
+    calculateBMI();
+  }, [height, weight]);
 
   const fetchProfile = async () => {
     try {
@@ -41,13 +61,30 @@ export default function ProfileScreen({ navigation }) {
       setGoal(res.data.user.health_goal || "");
       // Nếu có health_profile thì lấy các chỉ số
       if (res.data.health_profile) {
-        setBMI(res.data.health_profile.bmi || "");
         setWater(res.data.health_profile.water_intake || "");
         setSteps(res.data.health_profile.steps || "");
         setHeartRate(res.data.health_profile.heart_rate || "");
       }
     } catch (err) {
       Alert.alert("Lỗi", "Không thể lấy thông tin hồ sơ.");
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await updateUserProfile({
+        height: height ? parseFloat(height) : null,
+        weight: weight ? parseFloat(weight) : null,
+        age: age ? parseInt(age) : null,
+        health_goal: goal,
+      });
+      Alert.alert("Thành công", "Đã lưu thông tin cá nhân!");
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Lỗi", "Không thể lưu thông tin. Vui lòng thử lại!");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -90,16 +127,37 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Thông tin cá nhân */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            marginBottom: 10,
+          }}
+        >
+          <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+          <TouchableOpacity
+            onPress={handleSaveProfile}
+            disabled={saving}
+            style={{ marginLeft: 8 }}
+          >
+            <Icon
+              name="content-save"
+              size={25}
+              color={saving ? "#ccc" : "#007AFF"}
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.infoRow}>
           <Icon name="human-male-height" size={22} color="#007AFF" />
-          <TextInput
-            style={styles.infoInput}
-            value={height}
-            onChangeText={setHeight}
-            placeholder="Chiều cao (cm)"
-            keyboardType="numeric"
-          />
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+            <TextInput
+              style={[styles.infoInput, { flex: 1 }]}
+              value={height}
+              onChangeText={setHeight}
+              placeholder="Chiều cao"
+              keyboardType="numeric"
+            />
+            <Text style={{ marginLeft: 4, fontWeight: 800 }}>cm</Text>
+          </View>
         </View>
         <View style={styles.infoRow}>
           <Icon name="weight-kilogram" size={22} color="#007AFF" />
@@ -110,6 +168,7 @@ export default function ProfileScreen({ navigation }) {
             placeholder="Cân nặng (kg)"
             keyboardType="numeric"
           />
+          <Text style={{ marginLeft: 4, fontWeight: 800 }}>kg</Text>
         </View>
         <View style={styles.infoRow}>
           <Icon name="calendar-account" size={22} color="#007AFF" />
@@ -120,6 +179,7 @@ export default function ProfileScreen({ navigation }) {
             placeholder="Tuổi"
             keyboardType="numeric"
           />
+          <Text style={{ marginLeft: 4, fontWeight: 800 }}>Tuổi</Text>
         </View>
         <View style={styles.infoRow}>
           <Icon name="target" size={22} color="#007AFF" />

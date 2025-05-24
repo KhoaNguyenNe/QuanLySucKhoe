@@ -14,6 +14,9 @@ from .permissions import IsOwnerOrReadOnly, IsExpert, IsOwnerOrExpert
 import random
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # User ViewSet
 class UserViewSet(viewsets.ModelViewSet):
@@ -247,6 +250,14 @@ class UserProfileView(APIView):
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+    
+    def put(self, request):
+        user = request.user
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'user': serializer.data}, status=200)
+        return Response(serializer.errors, status=400)
 
 class SendOTPView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -290,3 +301,19 @@ class ConfirmOTPView(APIView):
             return Response({'message': 'Đổi mật khẩu thành công'}, status=200)
         except User.DoesNotExist:
             return Response({'error': 'Không tìm thấy user'}, status=404)
+
+class GoogleLoginAPIView(APIView):
+    def post(self, request):
+        token = request.data.get('access_token')
+        try:
+            idinfo = id_token.verify_oauth2_token(token, requests.Request())
+            email = idinfo['email']
+            user, created = User.objects.get_or_create(email=email)
+            # Tùy chỉnh thêm nếu muốn tạo user mới
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

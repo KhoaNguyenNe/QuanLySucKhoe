@@ -13,8 +13,10 @@ import {
 } from "./app/screens";
 import VerifyOTPScreen from "./app/screens/VerifyOTPScreen";
 import ProfileScreen from "./app/screens/ProfileScreen";
-
 const Stack = createStackNavigator();
+
+import { makeRedirectUri } from "expo-auth-session";
+console.log(makeRedirectUri({ useProxy: true }));
 
 export default function App() {
   return (

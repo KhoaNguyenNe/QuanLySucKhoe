@@ -9,7 +9,7 @@ import Constants from "expo-constants";
 WebBrowser.maybeCompleteAuthSession();
 
 const API_URL =
-  "https://0db6-2405-4802-3f-edd0-a422-732a-9013-e5b.ngrok-free.app"; // Đổi thành domain ngrok của bạn
+  "http://192.168.100.186:8000/"; // Đổi thành domain ngrok của bạn
 
 const GOOGLE_CLIENT_ID = Constants.expoConfig.extra.GOOGLE_CLIENT_ID;
 const FACEBOOK_CLIENT_ID = Constants.expoConfig.extra.FACEBOOK_CLIENT_ID;

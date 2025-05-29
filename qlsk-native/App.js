@@ -13,6 +13,7 @@ import {
 } from "./app/screens";
 import VerifyOTPScreen from "./app/screens/VerifyOTPScreen";
 import ProfileScreen from "./app/screens/ProfileScreen";
+import ReminderScreen from "./app/screens/ReminderScreen";
 const Stack = createStackNavigator();
 
 import { makeRedirectUri } from "expo-auth-session";
@@ -38,6 +39,7 @@ export default function App() {
           />
           <Stack.Screen name="VerifyOTPScreen" component={VerifyOTPScreen} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+          <Stack.Screen name="ReminderScreen" component={ReminderScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>

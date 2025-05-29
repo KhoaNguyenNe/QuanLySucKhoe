@@ -87,6 +87,7 @@ class Reminder(models.Model):
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reminders")
     reminder_type = models.CharField(max_length=10, choices=REMINDER_TYPE_CHOICES)
+    date = models.DateField(null=True, blank=True)  # Ngày nhắc nhở, có thể null nếu lặp lại hằng ngày
     time = models.TimeField()  # Thời gian nhắc nhở
     message = models.CharField(max_length=255)  # Nội dung nhắc nhở
 

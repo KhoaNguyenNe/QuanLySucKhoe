@@ -51,9 +51,10 @@ class NutritionPlanSerializer(serializers.ModelSerializer):
 
 # Reminder Serializer
 class ReminderSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Reminder
-        fields = ['id', 'user', 'reminder_type', 'time', 'message']
+        fields = ['id', 'user', 'reminder_type', 'date', 'time', 'message']
 
 # Chat Message Serializer
 class ChatMessageSerializer(serializers.ModelSerializer):

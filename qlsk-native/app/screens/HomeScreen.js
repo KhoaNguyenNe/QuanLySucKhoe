@@ -63,7 +63,7 @@ export default function HomeScreen({ navigation }) {
       label: "Nhắc nhở & Theo dõi",
       color: "#2d6cf5",
       onPress: () => {
-        navigation.navigate("");
+        navigation.navigate("ReminderScreen");
       },
     },
     {

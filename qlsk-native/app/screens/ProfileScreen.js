@@ -8,12 +8,15 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { Button } from "react-native-paper";
 import { getUserProfile, updateUserProfile } from "../api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProfileScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [userInfo, setUserInfo] = useState(null);
   const [name, setName] = useState("");
   const [height, setHeight] = useState("");
@@ -93,9 +96,8 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={[styles.container, { paddingTop: 30 }]}>
-      {/* Header với nút Back */}
-      <View style={styles.headerContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.headerRow, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -104,170 +106,178 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hồ sơ cá nhân</Text>
       </View>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Image
-          source={require("../../assets/avatar.png")}
-          style={styles.avatar}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{name || "Chưa đặt tên"}</Text>
-          <Text style={styles.uid}>Email: {userInfo?.email || "..."}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.loginBtn}
-          onPress={handleChangePassword}
-        >
-          <Text style={{ color: "#fff", fontWeight: "bold" }}>
-            Đổi mật khẩu
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Thông tin cá nhân */}
-      <View style={styles.section}>
-        <View
-          style={{
-            flexDirection: "row",
-            marginBottom: 10,
-          }}
-        >
-          <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+      <ScrollView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Image
+            source={require("../../assets/avatar.png")}
+            style={styles.avatar}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{name || "Chưa đặt tên"}</Text>
+            <Text style={styles.uid}>Email: {userInfo?.email || "..."}</Text>
+          </View>
           <TouchableOpacity
-            onPress={handleSaveProfile}
-            disabled={saving}
-            style={{ marginLeft: 8 }}
+            style={styles.loginBtn}
+            onPress={handleChangePassword}
           >
-            <Icon
-              name="content-save"
-              size={25}
-              color={saving ? "#ccc" : "#007AFF"}
-            />
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              Đổi mật khẩu
+            </Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.infoRow}>
-          <Icon name="human-male-height" size={22} color="#007AFF" />
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+
+        {/* Thông tin cá nhân */}
+        <View style={styles.section}>
+          <View
+            style={{
+              flexDirection: "row",
+              marginBottom: 10,
+            }}
+          >
+            <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+            <TouchableOpacity
+              onPress={handleSaveProfile}
+              disabled={saving}
+              style={{ marginLeft: 8 }}
+            >
+              <Icon
+                name="content-save"
+                size={25}
+                color={saving ? "#ccc" : "#007AFF"}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="human-male-height" size={22} color="#007AFF" />
+            <View
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            >
+              <TextInput
+                style={[styles.infoInput, { flex: 1 }]}
+                value={height}
+                onChangeText={setHeight}
+                placeholder="Chiều cao"
+                keyboardType="numeric"
+              />
+              <Text style={{ marginLeft: 4, fontWeight: 800 }}>cm</Text>
+            </View>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="weight-kilogram" size={22} color="#007AFF" />
             <TextInput
-              style={[styles.infoInput, { flex: 1 }]}
-              value={height}
-              onChangeText={setHeight}
-              placeholder="Chiều cao"
+              style={styles.infoInput}
+              value={weight}
+              onChangeText={setWeight}
+              placeholder="Cân nặng (kg)"
               keyboardType="numeric"
             />
-            <Text style={{ marginLeft: 4, fontWeight: 800 }}>cm</Text>
+            <Text style={{ marginLeft: 4, fontWeight: 800 }}>kg</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="calendar-account" size={22} color="#007AFF" />
+            <TextInput
+              style={styles.infoInput}
+              value={age}
+              onChangeText={setAge}
+              placeholder="Tuổi"
+              keyboardType="numeric"
+            />
+            <Text style={{ marginLeft: 4, fontWeight: 800 }}>Tuổi</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="target" size={22} color="#007AFF" />
+            <TextInput
+              style={styles.infoInput}
+              value={goal}
+              onChangeText={setGoal}
+              placeholder="Mục tiêu sức khỏe"
+            />
           </View>
         </View>
-        <View style={styles.infoRow}>
-          <Icon name="weight-kilogram" size={22} color="#007AFF" />
-          <TextInput
-            style={styles.infoInput}
-            value={weight}
-            onChangeText={setWeight}
-            placeholder="Cân nặng (kg)"
-            keyboardType="numeric"
-          />
-          <Text style={{ marginLeft: 4, fontWeight: 800 }}>kg</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Icon name="calendar-account" size={22} color="#007AFF" />
-          <TextInput
-            style={styles.infoInput}
-            value={age}
-            onChangeText={setAge}
-            placeholder="Tuổi"
-            keyboardType="numeric"
-          />
-          <Text style={{ marginLeft: 4, fontWeight: 800 }}>Tuổi</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Icon name="target" size={22} color="#007AFF" />
-          <TextInput
-            style={styles.infoInput}
-            value={goal}
-            onChangeText={setGoal}
-            placeholder="Mục tiêu sức khỏe"
-          />
-        </View>
-      </View>
 
-      {/* Theo dõi sức khỏe */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Theo dõi sức khỏe</Text>
-        <View style={styles.infoRow}>
-          <Icon name="scale-bathroom" size={22} color="#007AFF" />
-          <Text style={styles.infoValue}>BMI: {bmi || "--"}</Text>
+        {/* Theo dõi sức khỏe */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Theo dõi sức khỏe</Text>
+          <View style={styles.infoRow}>
+            <Icon name="scale-bathroom" size={22} color="#007AFF" />
+            <Text style={styles.infoValue}>BMI: {bmi || "--"}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="cup-water" size={22} color="#007AFF" />
+            <Text style={styles.infoValue}>Nước uống: {water || "--"} lít</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="walk" size={22} color="#007AFF" />
+            <Text style={styles.infoValue}>Số bước: {steps || "--"}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="heart-pulse" size={22} color="#007AFF" />
+            <Text style={styles.infoValue}>Nhịp tim: {heartRate || "--"}</Text>
+          </View>
         </View>
-        <View style={styles.infoRow}>
-          <Icon name="cup-water" size={22} color="#007AFF" />
-          <Text style={styles.infoValue}>Nước uống: {water || "--"} lít</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Icon name="walk" size={22} color="#007AFF" />
-          <Text style={styles.infoValue}>Số bước: {steps || "--"}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Icon name="heart-pulse" size={22} color="#007AFF" />
-          <Text style={styles.infoValue}>Nhịp tim: {heartRate || "--"}</Text>
-        </View>
-      </View>
 
-      {/* Các mục khác */}
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="sync" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Đồng bộ & khôi phục dữ liệu</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="watch-variant" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Kết nối thiết bị đeo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="file-export" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Xuất dữ liệu</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="translate" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Ngôn ngữ</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="star-outline" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Đánh giá & nhận xét</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="account-multiple-plus" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Chia sẻ với bạn bè</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="email-outline" size={22} color="#007AFF" />
-          <Text style={styles.menuLabel}>Liên hệ hỗ trợ</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        {/* Các mục khác */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="sync" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Đồng bộ & khôi phục dữ liệu</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="watch-variant" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Kết nối thiết bị đeo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="file-export" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Xuất dữ liệu</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="translate" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Ngôn ngữ</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="star-outline" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Đánh giá & nhận xét</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="account-multiple-plus" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Chia sẻ với bạn bè</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="email-outline" size={22} color="#007AFF" />
+            <Text style={styles.menuLabel}>Liên hệ hỗ trợ</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f7f7f7" },
-  headerContainer: {
+  safeArea: { flex: 1, backgroundColor: "#f7f7f7" },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingBottom: 8,
     paddingHorizontal: 16,
-    paddingVertical: 8,
     backgroundColor: "#fff",
+    zIndex: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
   backButton: {
     padding: 8,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    elevation: 0,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#222",
-    marginLeft: 16,
+    marginLeft: 12,
   },
+  container: { flex: 1, backgroundColor: "#f7f7f7" },
   header: {
     flexDirection: "row",
     alignItems: "center",

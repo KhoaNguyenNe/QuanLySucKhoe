@@ -84,6 +84,9 @@ class ReminderViewSet(viewsets.ModelViewSet):
     serializer_class = ReminderSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 # Chat Message ViewSet
 class ChatMessageViewSet(viewsets.ModelViewSet):
     queryset = ChatMessage.objects.all()
@@ -186,6 +189,7 @@ class FlexibleReminderView(APIView):
         reminder = Reminder.objects.create(
             user=request.user,
             reminder_type=reminder_type,
+            date=date,
             time=time,
             message=message
         )

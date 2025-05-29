@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = "http://26.77.196.96:8000/api/";
+const API_BASE = "http://192.168.100.186:8000/api/";
 
 export const API_ENDPOINTS = {
   LOGIN: "auth/jwt/token/",

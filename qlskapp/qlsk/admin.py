@@ -35,7 +35,7 @@ class NutritionPlanAdmin(admin.ModelAdmin):
 
 @admin.register(Reminder)
 class ReminderAdmin(admin.ModelAdmin):
-    list_display = ('user', 'reminder_type', 'time', 'message')
+    list_display = ('user', 'reminder_type', 'time', 'message', 'repeat_days', 'enabled')
 
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):

@@ -90,6 +90,8 @@ class Reminder(models.Model):
     date = models.DateField(null=True, blank=True)  # Ngày nhắc nhở, có thể null nếu lặp lại hằng ngày
     time = models.TimeField()  # Thời gian nhắc nhở
     message = models.CharField(max_length=255)  # Nội dung nhắc nhở
+    repeat_days = models.CharField(max_length=50, null=True, blank=True, help_text="Lưu JSON các thứ trong tuần, ví dụ: [\"T2\", \"T3\", \"T5\"]")
+    enabled = models.BooleanField(default=True, help_text="Bật/tắt nhắc nhở")
 
     def __str__(self):
         return f"Reminder for {self.user.username}: {self.get_reminder_type_display()} at {self.time}"

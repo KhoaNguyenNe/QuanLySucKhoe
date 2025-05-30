@@ -85,7 +85,14 @@ class ReminderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwnerOrReadOnly]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        repeat_days = self.request.data.get('repeat_days')
+        enabled = self.request.data.get('enabled', True)
+        serializer.save(user=self.request.user, repeat_days=repeat_days, enabled=enabled)
+
+    def perform_update(self, serializer):
+        repeat_days = self.request.data.get('repeat_days')
+        enabled = self.request.data.get('enabled', True)
+        serializer.save(repeat_days=repeat_days, enabled=enabled)
 
 # Chat Message ViewSet
 class ChatMessageViewSet(viewsets.ModelViewSet):
@@ -184,6 +191,8 @@ class FlexibleReminderView(APIView):
         time = request.data.get('time')
         message = request.data.get('message')
         date = request.data.get('date')  # Ngày nhắc nhở (tùy chọn)
+        repeat_days = request.data.get('repeat_days')
+        enabled = request.data.get('enabled', True)
         if not (reminder_type and time and message):
             return Response({'detail': 'Missing required fields.'}, status=400)
         reminder = Reminder.objects.create(
@@ -191,7 +200,9 @@ class FlexibleReminderView(APIView):
             reminder_type=reminder_type,
             date=date,
             time=time,
-            message=message
+            message=message,
+            repeat_days=repeat_days,
+            enabled=enabled
         )
         return Response({'detail': 'Reminder created.', 'reminder_id': reminder.id}, status=201)
 

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Exlogrn",
+    "name": "QLSK",
     "slug": "Exlogrn",
     "version": "2.0.0",
     "orientation": "portrait",
@@ -18,15 +18,20 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/app.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.btl.qlsk"
     },
     "web": {
       "favicon": "./assets/app.png"
     },
     "extra": {
       "GOOGLE_CLIENT_ID": "375798059573-mo03oq4f0a8a1hghu61vra7vr55m358s.apps.googleusercontent.com",
-      "FACEBOOK_CLIENT_ID": "1886366425472548"
+      "FACEBOOK_CLIENT_ID": "1886366425472548",
+      "eas": {
+        "projectId": "917a2cfc-1108-419d-bbcb-ba83e902e760"
+      }
     },
-    "scheme": "exlogrn"
+    "scheme": "qlsk",
+    "owner": "taotenk333"
   }
 }

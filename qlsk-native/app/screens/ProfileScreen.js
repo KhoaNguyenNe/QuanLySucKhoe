@@ -14,6 +14,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { Button } from "react-native-paper";
 import { getUserProfile, updateUserProfile } from "../api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useStepCounter } from "../contexts/StepCounterContext";
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -29,6 +30,7 @@ export default function ProfileScreen({ navigation }) {
   const [steps, setSteps] = useState("");
   const [heartRate, setHeartRate] = useState("");
   const [saving, setSaving] = useState(false);
+  const { steps: realtimeSteps } = useStepCounter();
 
   useEffect(() => {
     fetchProfile();
@@ -209,7 +211,9 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <View style={styles.infoRow}>
             <Icon name="walk" size={22} color="#007AFF" />
-            <Text style={styles.infoValue}>Số bước: {steps || "--"}</Text>
+            <Text style={styles.infoValue}>
+              Số bước: {realtimeSteps ?? "--"}
+            </Text>
           </View>
           <View style={styles.infoRow}>
             <Icon name="heart-pulse" size={22} color="#007AFF" />

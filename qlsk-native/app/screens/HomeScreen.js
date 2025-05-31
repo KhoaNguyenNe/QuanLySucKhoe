@@ -53,6 +53,14 @@ export default function HomeScreen({ navigation }) {
       },
     },
     {
+      icon: "walk",
+      label: "Đếm số bước đi",
+      color: "#2db6f5",
+      onPress: () => {
+        navigation.navigate("StepCounterScreen");
+      },
+    },
+    {
       icon: "calendar-check",
       label: "Kế hoạch tập luyện",
       color: "#2db6f5",

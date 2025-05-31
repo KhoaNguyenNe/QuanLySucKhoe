@@ -60,7 +60,7 @@ export default function HomeScreen({ navigation }) {
     },
     {
       icon: "bell-ring",
-      label: "Nhắc nhở & Theo dõi",
+      label: "Nhắc nhở",
       color: "#2d6cf5",
       onPress: () => {
         navigation.navigate("ReminderScreen");

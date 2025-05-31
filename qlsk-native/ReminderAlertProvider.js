@@ -59,7 +59,7 @@ function checkAndAlertReminders(reminders, alertedRemindersRef) {
         shouldAlert = true;
       }
     } else if (reminder.repeat_days && reminder.repeat_days.length > 0) {
-      const weekday = now.getDay() === 0 ? "CN" : "T" + now.getDay();
+      const weekday = now.getDay() === 0 ? "CN" : "T" + (now.getDay() + 1);
       if (
         reminder.repeat_days.includes(weekday) &&
         now.getHours() === parseInt(reminder.time.slice(0, 2)) &&
@@ -77,16 +77,17 @@ function checkAndAlertReminders(reminders, alertedRemindersRef) {
       }
     }
     if (shouldAlert) {
-      Alert.alert(
-        "Nhắc nhở",
-        (reminder.reminder_type === "water"
+      const title =
+        reminder.reminder_type === "water"
           ? "Uống nước"
           : reminder.reminder_type === "exercise"
           ? "Tập luyện"
-          : "Nghỉ ngơi") +
-          ": " +
-          reminder.message
-      );
+          : "Nghỉ ngơi";
+      const alertMsg =
+        reminder.message && reminder.message.trim() !== ""
+          ? title + ": " + reminder.message
+          : title;
+      Alert.alert("Nhắc nhở", alertMsg);
       alertedRemindersRef.current[key] = true;
     }
   });

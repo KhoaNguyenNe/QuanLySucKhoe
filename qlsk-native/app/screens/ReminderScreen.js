@@ -110,21 +110,19 @@ export default function ReminderScreen() {
   };
 
   const handleSaveReminder = async () => {
-    if (!message) {
-      Alert.alert("Lỗi", "Vui lòng nhập nội dung nhắc nhở");
-      return;
-    }
     setSaving(true);
     // Nếu repeatDays rỗng, mặc định lặp lại hằng ngày
     const repeatDaysToSave =
       repeatDays.length === 0
         ? ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
         : repeatDays;
+    const messageToSave =
+      message && message.trim() !== "" ? message : "Thông báo";
     const reminderData = {
       reminder_type: reminderType,
       date: date.toISOString().split("T")[0],
       time: date.toTimeString().slice(0, 8),
-      message,
+      message: messageToSave,
       repeat_days: JSON.stringify(repeatDaysToSave),
       enabled,
     };
@@ -198,7 +196,7 @@ export default function ReminderScreen() {
         >
           <Icon name="arrow-left" size={26} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.header}>Báo thức</Text>
+        <Text style={styles.header}>Nhắc nhở</Text>
       </View>
       <View style={styles.container}>
         {loading ? (

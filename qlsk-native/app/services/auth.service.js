@@ -8,16 +8,12 @@ import Constants from "expo-constants";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const API_URL =
-  "http://192.168.100.186:8000/"; // Đổi thành domain ngrok của bạn
-
+const API_URL = "http://192.168.1.83:8000/";
 const GOOGLE_CLIENT_ID = Constants.expoConfig.extra.GOOGLE_CLIENT_ID;
 const FACEBOOK_CLIENT_ID = Constants.expoConfig.extra.FACEBOOK_CLIENT_ID;
 
 // Luôn dùng proxy để redirectUri đúng chuẩn Expo
 const redirectUri = makeRedirectUri({ useProxy: true });
-console.log("[Google OAuth] Redirect URI:", redirectUri);
-console.log("[Facebook OAuth] Redirect URI:", redirectUri);
 
 export const useGoogleAuth = () => {
   const [request, response, promptAsync] = Google.useAuthRequest({

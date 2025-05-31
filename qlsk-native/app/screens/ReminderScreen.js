@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,6 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import * as Notifications from "expo-notifications";
 import { Picker } from "@react-native-picker/picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -27,6 +26,8 @@ import {
   deleteReminder,
 } from "../api";
 import { useNavigation } from "@react-navigation/native";
+import { useContext } from "react";
+import { ReminderAlertContext } from "../../ReminderAlertProvider";
 
 const REMINDER_TYPES = [
   { key: "water", label: "Uống nước", icon: "cup-water" },
@@ -37,91 +38,6 @@ const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 // Hàm chuyển thứ sang số weekday của expo (0=CN, 1=T2,...)
 const weekdayMap = { CN: 1, T2: 2, T3: 3, T4: 4, T5: 5, T6: 6, T7: 7 };
-
-// Đặt notification cho 1 nhắc nhở
-async function scheduleReminderNotification(reminder) {
-  if (!reminder.enabled) return null;
-  let notificationIds = [];
-  if (reminder.repeat_days && reminder.repeat_days.length === 7) {
-    // Hằng ngày
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title:
-          "⏰ " +
-          (reminder.reminder_type === "water"
-            ? "Uống nước"
-            : reminder.reminder_type === "exercise"
-            ? "Tập luyện"
-            : "Nghỉ ngơi"),
-        body: reminder.message,
-        sound: true,
-        channelId: "reminder-channel",
-      },
-      trigger: {
-        hour: parseInt(reminder.time.slice(0, 2)),
-        minute: parseInt(reminder.time.slice(3, 5)),
-        repeats: true,
-      },
-    });
-    notificationIds.push(id);
-  } else if (reminder.repeat_days && reminder.repeat_days.length > 0) {
-    // Lặp lại theo các thứ trong tuần
-    for (const day of reminder.repeat_days) {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title:
-            "⏰ " +
-            (reminder.reminder_type === "water"
-              ? "Uống nước"
-              : reminder.reminder_type === "exercise"
-              ? "Tập luyện"
-              : "Nghỉ ngơi"),
-          body: reminder.message,
-          sound: true,
-          channelId: "reminder-channel",
-        },
-        trigger: {
-          weekday: weekdayMap[day],
-          hour: parseInt(reminder.time.slice(0, 2)),
-          minute: parseInt(reminder.time.slice(3, 5)),
-          repeats: true,
-        },
-      });
-      notificationIds.push(id);
-    }
-  } else {
-    // Chỉ 1 lần (không lặp)
-    const now = new Date();
-    const target = new Date(reminder.date + "T" + reminder.time);
-    if (target > now) {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title:
-            "⏰ " +
-            (reminder.reminder_type === "water"
-              ? "Uống nước"
-              : reminder.reminder_type === "exercise"
-              ? "Tập luyện"
-              : "Nghỉ ngơi"),
-          body: reminder.message,
-          sound: true,
-          channelId: "reminder-channel",
-        },
-        trigger: target,
-      });
-      notificationIds.push(id);
-    }
-  }
-  return notificationIds;
-}
-
-// Hủy tất cả notification của 1 nhắc nhở
-async function cancelReminderNotifications(notificationIds) {
-  if (!notificationIds) return;
-  for (const id of notificationIds) {
-    await Notifications.cancelScheduledNotificationAsync(id);
-  }
-}
 
 export default function ReminderScreen() {
   const insets = useSafeAreaInsets();
@@ -137,55 +53,13 @@ export default function ReminderScreen() {
   const [repeatDays, setRepeatDays] = useState([]);
   const [enabled, setEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [reminderNotiMap, setReminderNotiMap] = useState({}); // { [reminderId]: [notiId, ...] }
   const navigation = useNavigation();
+  const { fetchReminders: fetchRemindersProvider } =
+    useContext(ReminderAlertContext);
 
   useEffect(() => {
     fetchReminders();
-    (async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== "granted") {
-        const { status: askStatus } =
-          await Notifications.requestPermissionsAsync();
-        if (askStatus !== "granted") {
-          Alert.alert(
-            "Thông báo",
-            "Bạn cần cấp quyền thông báo cho ứng dụng để nhận nhắc nhở. Vui lòng vào Cài đặt > Ứng dụng > Quyền > Thông báo để bật.",
-            [
-              { text: "Để sau", style: "cancel" },
-              { text: "Mở cài đặt", onPress: () => Linking.openSettings() },
-            ]
-          );
-        }
-      }
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("reminder-channel", {
-          name: "Nhắc nhở",
-          importance: Notifications.AndroidImportance.HIGH,
-          sound: "default",
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#FF231F7C",
-        });
-      }
-    })();
   }, []);
-
-  useEffect(() => {
-    if (reminders.length > 0) {
-      (async () => {
-        // Hủy hết notification cũ
-        await Notifications.cancelAllScheduledNotificationsAsync();
-        let newMap = {};
-        for (const reminder of reminders) {
-          if (reminder.enabled) {
-            const ids = await scheduleReminderNotification(reminder);
-            if (ids) newMap[reminder.id] = ids;
-          }
-        }
-        setReminderNotiMap(newMap);
-      })();
-    }
-  }, [reminders]);
 
   const fetchReminders = async () => {
     setLoading(true);
@@ -241,12 +115,17 @@ export default function ReminderScreen() {
       return;
     }
     setSaving(true);
+    // Nếu repeatDays rỗng, mặc định lặp lại hằng ngày
+    const repeatDaysToSave =
+      repeatDays.length === 0
+        ? ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+        : repeatDays;
     const reminderData = {
       reminder_type: reminderType,
       date: date.toISOString().split("T")[0],
       time: date.toTimeString().slice(0, 8),
       message,
-      repeat_days: JSON.stringify(repeatDays),
+      repeat_days: JSON.stringify(repeatDaysToSave),
       enabled,
     };
     try {
@@ -258,18 +137,8 @@ export default function ReminderScreen() {
         reminderId = res.data.id;
       }
       setModalVisible(false);
+      (await fetchRemindersProvider) && fetchRemindersProvider();
       fetchReminders();
-      // Đặt lại notification cho nhắc nhở này
-      if (reminderId) {
-        if (reminderNotiMap[reminderId])
-          await cancelReminderNotifications(reminderNotiMap[reminderId]);
-        const ids = await scheduleReminderNotification({
-          ...reminderData,
-          id: reminderId,
-          repeat_days: repeatDays,
-        });
-        setReminderNotiMap((prev) => ({ ...prev, [reminderId]: ids }));
-      }
     } catch (err) {
       Alert.alert(
         "Lỗi",
@@ -290,8 +159,7 @@ export default function ReminderScreen() {
           try {
             await deleteReminder(id);
             fetchReminders();
-            if (reminderNotiMap[id])
-              await cancelReminderNotifications(reminderNotiMap[id]);
+            fetchRemindersProvider && fetchRemindersProvider();
           } catch (err) {
             Alert.alert("Lỗi", "Không thể xóa nhắc nhở");
           }
@@ -308,16 +176,7 @@ export default function ReminderScreen() {
         enabled: !item.enabled,
       });
       fetchReminders();
-      // Hủy notification cũ nếu tắt, hoặc đặt lại nếu bật
-      if (reminderNotiMap[item.id])
-        await cancelReminderNotifications(reminderNotiMap[item.id]);
-      if (!item.enabled) {
-        const ids = await scheduleReminderNotification({
-          ...item,
-          enabled: true,
-        });
-        setReminderNotiMap((prev) => ({ ...prev, [item.id]: ids }));
-      }
+      fetchRemindersProvider && fetchRemindersProvider();
     } catch (err) {
       Alert.alert("Lỗi", "Không thể cập nhật trạng thái nhắc nhở");
     }

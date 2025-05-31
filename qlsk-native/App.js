@@ -14,6 +14,7 @@ import {
 import VerifyOTPScreen from "./app/screens/VerifyOTPScreen";
 import ProfileScreen from "./app/screens/ProfileScreen";
 import ReminderScreen from "./app/screens/ReminderScreen";
+import ReminderAlertProvider from "./ReminderAlertProvider";
 const Stack = createStackNavigator();
 
 import { makeRedirectUri } from "expo-auth-session";
@@ -21,27 +22,29 @@ console.log(makeRedirectUri({ useProxy: true }));
 
 export default function App() {
   return (
-    <Provider theme={theme}>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="StartScreen"
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="StartScreen" component={StartScreen} />
-          <Stack.Screen name="LoginScreen" component={LoginScreen} />
-          <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
-          <Stack.Screen name="HomeScreen" component={HomeScreen} />
-          <Stack.Screen
-            name="ResetPasswordScreen"
-            component={ResetPasswordScreen}
-          />
-          <Stack.Screen name="VerifyOTPScreen" component={VerifyOTPScreen} />
-          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-          <Stack.Screen name="ReminderScreen" component={ReminderScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </Provider>
+    <ReminderAlertProvider>
+      <Provider theme={theme}>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="StartScreen"
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="StartScreen" component={StartScreen} />
+            <Stack.Screen name="LoginScreen" component={LoginScreen} />
+            <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
+            <Stack.Screen name="HomeScreen" component={HomeScreen} />
+            <Stack.Screen
+              name="ResetPasswordScreen"
+              component={ResetPasswordScreen}
+            />
+            <Stack.Screen name="VerifyOTPScreen" component={VerifyOTPScreen} />
+            <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+            <Stack.Screen name="ReminderScreen" component={ReminderScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </Provider>
+    </ReminderAlertProvider>
   );
 }

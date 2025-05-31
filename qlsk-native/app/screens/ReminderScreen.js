@@ -297,17 +297,56 @@ export default function ReminderScreen() {
                   ))}
                 </Picker>
               </View>
-              <TouchableOpacity
-                style={styles.inputRow}
-                onPress={() => setShowTimePicker(true)}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  marginBottom: 14,
+                }}
               >
-                <Icon name="clock" size={22} color="#007AFF" />
-                <Text
-                  style={{ marginLeft: 8, fontWeight: "bold", fontSize: 16 }}
-                >
-                  {date.toTimeString().slice(0, 5)}
-                </Text>
-              </TouchableOpacity>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                  <Text style={{ fontWeight: "bold" }}>Giờ</Text>
+                  <Picker
+                    selectedValue={date.getHours()}
+                    style={{ width: 100, height: 120 }}
+                    onValueChange={(hour) => {
+                      const newDate = new Date(date);
+                      newDate.setHours(hour);
+                      setDate(newDate);
+                    }}
+                    mode="dropdown"
+                  >
+                    {[...Array(24).keys()].map((h) => (
+                      <Picker.Item
+                        key={h}
+                        label={h.toString().padStart(2, "0")}
+                        value={h}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                  <Text style={{ fontWeight: "bold" }}>Phút</Text>
+                  <Picker
+                    selectedValue={date.getMinutes()}
+                    style={{ width: 100, height: 120 }}
+                    onValueChange={(minute) => {
+                      const newDate = new Date(date);
+                      newDate.setMinutes(minute);
+                      setDate(newDate);
+                    }}
+                    mode="dropdown"
+                  >
+                    {[...Array(60).keys()].map((m) => (
+                      <Picker.Item
+                        key={m}
+                        label={m.toString().padStart(2, "0")}
+                        value={m}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
               <View
                 style={{
                   flexDirection: "row",
@@ -385,25 +424,6 @@ export default function ReminderScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {showTimePicker && (
-                <DateTimePicker
-                  value={date}
-                  mode="time"
-                  is24Hour={true}
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  onChange={(e, selectedTime) => {
-                    setShowTimePicker(false);
-                    if (selectedTime) {
-                      setDate((prev) => {
-                        const d = new Date(prev);
-                        d.setHours(selectedTime.getHours());
-                        d.setMinutes(selectedTime.getMinutes());
-                        return d;
-                      });
-                    }
-                  }}
-                />
-              )}
             </View>
           </KeyboardAvoidingView>
         </Modal>

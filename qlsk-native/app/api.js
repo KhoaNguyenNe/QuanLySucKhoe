@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = "http://192.168.1.83:8000/api/";
+const API_BASE = "http://192.168.1.237:8000/api/";
 
 export const API_ENDPOINTS = {
   LOGIN: "auth/jwt/token/",
@@ -11,7 +11,7 @@ export const API_ENDPOINTS = {
   SEND_OTP: "auth/password/send-otp/",
   VERIFY_OTP: "auth/password/confirm-otp/",
 };
-
+ 
 // Các endpoint public không cần token
 const publicEndpoints = [
   API_ENDPOINTS.LOGIN,

@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, RegisterView, UserProfileView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth import views as auth_views
@@ -13,19 +13,19 @@ from rest_framework_simplejwt.views import (
 )
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'exercises', ExerciseViewSet)
-router.register(r'training-schedules', TrainingScheduleViewSet)
-router.register(r'training-sessions', TrainingSessionViewSet)
-router.register(r'reminders', ReminderViewSet)
-router.register(r'chat-messages', ChatMessageViewSet)
+router.register(r'users', UserViewSet, basename='user')
+router.register(r'exercises', ExerciseViewSet, basename='exercise')
+router.register(r'training-schedules', TrainingScheduleViewSet, basename='trainingschedule')
+router.register(r'training-sessions', TrainingSessionViewSet, basename='trainingsession')
+router.register(r'reminders', ReminderViewSet, basename='reminder')
+router.register(r'chat-messages', ChatMessageViewSet, basename='chatmessage')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('register/', RegisterView.as_view(), name='register'),
+    path('register/', UserViewSet.as_view({'post': 'register'}), name='register'),
     
     # User Profile
-    path('auth/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('auth/profile/', UserViewSet.as_view({'get': 'profile', 'put': 'profile'}), name='user-profile'),
     
     # JWT Authentication URLs
     path('auth/jwt/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

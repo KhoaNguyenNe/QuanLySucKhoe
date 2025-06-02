@@ -28,7 +28,10 @@ export default function HealthJournalScreen() {
     }
     setLoading(true);
     try {
-      await createHealthJournal({ content });
+      await createHealthJournal({
+        content,
+        workout_session: workoutSession?.id,
+      });
       Alert.alert("Thành công", "Đã lưu nhật ký sức khỏe!", [
         {
           text: "OK",

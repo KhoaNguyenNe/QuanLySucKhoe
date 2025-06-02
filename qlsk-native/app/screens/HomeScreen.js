@@ -78,7 +78,9 @@ export default function HomeScreen({ navigation }) {
       icon: "notebook-edit",
       label: "Nhật ký sức khỏe",
       color: "#1ccfcf",
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate("HealthJournalListScreen");
+      },
     },
     {
       icon: "chat-processing",

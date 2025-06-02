@@ -18,6 +18,7 @@ import {
   completeExercise,
   completeWorkout,
   getWorkoutSession,
+  createHealthJournal,
 } from "../api";
 
 export default function WorkoutScreen() {
@@ -168,10 +169,16 @@ export default function WorkoutScreen() {
           },
           {
             text: "Quay lại",
-            onPress: () => {
-              navigation.navigate("ExerciseListScreen", {
-                selectedExercises: [],
-              });
+            onPress: async () => {
+              try {
+                await createHealthJournal({
+                  content: "không có",
+                  workout_session: workoutSession.id,
+                });
+              } catch (error) {
+                console.error("Lỗi khi lưu nhật ký tự động:", error);
+              }
+              navigation.navigate("HomeScreen");
             },
           },
         ]);

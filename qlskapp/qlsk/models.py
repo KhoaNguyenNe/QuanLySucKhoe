@@ -120,6 +120,7 @@ class HealthJournal(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="journals")
     date = models.DateField(auto_now_add=True)
     content = RichTextField()
+    workout_session = models.ForeignKey('WorkoutSession', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"Journal Entry for {self.user.username} on {self.date}"
@@ -148,7 +149,13 @@ class WorkoutSession(models.Model):
 # Workout Exercise Model (Lưu trữ chi tiết bài tập trong buổi tập)
 class WorkoutExercise(models.Model):
     workout_session = models.ForeignKey(WorkoutSession, on_delete=models.CASCADE)
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    exercise = models.ForeignKey(
+        Exercise,
+        on_delete=models.SET_NULL,  # Khi xóa Exercise, trường này sẽ thành NULL
+        null=True,
+        blank=True,
+        related_name="workout_exercises"
+    )
     duration = models.IntegerField(default=0)  # Thời gian thực hiện (giây)
     calories_burned = models.IntegerField(default=0)  # Calo tiêu thụ thực tế
     completed_at = models.DateTimeField(auto_now_add=True)

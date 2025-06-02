@@ -158,15 +158,17 @@ export const deleteExercise = (id) => api.delete(`/exercises/${id}/`);
 
 export const getWorkoutSessions = () => api.get("/workout-sessions/");
 export const createWorkoutSession = (data) => {
-  console.log("Sending data to server:", data);
   return api.post("/workout-sessions/", data);
 };
 export const getWorkoutSession = (id) => api.get(`/workout-sessions/${id}/`);
+
 export const completeExercise = (sessionId, data) =>
   api.post(`/workout-sessions/${sessionId}/complete_exercise/`, data);
 export const completeWorkout = (sessionId) =>
   api.post(`/workout-sessions/${sessionId}/complete_workout/`);
 
 export const createHealthJournal = (data) => api.post("/journals/", data);
+
+export const getHealthJournals = () => api.get("/journals/");
 
 export default api;

@@ -94,7 +94,7 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 class HealthJournalSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthJournal
-        fields = ['id', 'user', 'date', 'content']
+        fields = ['id', 'user', 'date', 'content', 'workout_session']
         read_only_fields = ['user']
 
 class RegisterSerializer(serializers.ModelSerializer):

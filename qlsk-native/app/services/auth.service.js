@@ -8,7 +8,7 @@ import Constants from "expo-constants";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const API_URL = "http://192.168.1.237:8000/";
+const API_URL = "http://192.168.100.186:8000/";
 const GOOGLE_CLIENT_ID = Constants.expoConfig.extra.GOOGLE_CLIENT_ID;
 const FACEBOOK_CLIENT_ID = Constants.expoConfig.extra.FACEBOOK_CLIENT_ID;
 

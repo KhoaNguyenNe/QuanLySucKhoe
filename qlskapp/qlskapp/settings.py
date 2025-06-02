@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +31,9 @@ DEBUG = True
 
 # Load biến môi trường từ file .env
 load_dotenv()
+
+MEDIA_ROOT = f'{BASE_DIR}/qlsk/media/'
+MEDIA_URL = '/media/'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -64,6 +70,9 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.facebook',
+    
+    #Hình ảnh
+    'cloudinary',
 ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
@@ -294,3 +303,10 @@ EMAIL_HOST_USER = os.getenv('EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD_APP')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 DOMAIN = os.getenv('IP')
+
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUD_NAME"),
+    api_key=os.getenv("CLOUD_API_KEY"),
+    api_secret=os.getenv("CLOUD_API_SECRET")
+)

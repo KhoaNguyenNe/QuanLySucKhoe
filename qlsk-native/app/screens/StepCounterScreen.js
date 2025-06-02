@@ -15,9 +15,9 @@ export default function StepCounterScreen() {
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={26} color="#2d6cf5" />
+          <Icon name="arrow-left" size={26} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Đếm số bước đi</Text>
+        <Text style={styles.headerTitle}>Đếm số bước đi</Text>
       </View>
 
       <View style={styles.stepsContainer}>
@@ -41,17 +41,19 @@ export default function StepCounterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#faf7fa",
+    backgroundColor: "#fff",
     paddingTop: 30,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 4,
+    paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 8,
-    backgroundColor: "#faf7fa",
+    backgroundColor: "#fff",
     zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
   backBtn: {
     backgroundColor: "#fff",
@@ -59,11 +61,11 @@ const styles = StyleSheet.create({
     padding: 4,
     elevation: 0,
   },
-  title: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#222",
     marginLeft: 8,
+    color: "#222",
   },
   stepsContainer: {
     alignItems: "center",

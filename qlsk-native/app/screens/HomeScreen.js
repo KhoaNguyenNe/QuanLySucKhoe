@@ -61,10 +61,10 @@ export default function HomeScreen({ navigation }) {
       },
     },
     {
-      icon: "calendar-check",
-      label: "Kế hoạch tập luyện",
+      icon: "dumbbell",
+      label: "Bài tập",
       color: "#2db6f5",
-      onPress: () => {},
+      onPress: () => navigation.navigate("ExerciseListScreen"),
     },
     {
       icon: "bell-ring",

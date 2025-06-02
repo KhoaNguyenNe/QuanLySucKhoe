@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
 
+
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,9 +28,23 @@ class HealthProfileSerializer(serializers.ModelSerializer):
 
 # Exercise Serializer
 class ExerciseSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Exercise
-        fields = ['id', 'name', 'description', 'duration', 'calories_burned']
+        fields = '__all__'
+        
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            request = self.context.get('request')
+            url = instance.image.url
+            if request:
+                url = request.build_absolute_uri(url)
+            data['image'] = url
+        else:
+            data['image'] = None
+        return data
 
 # Training Schedule Serializer
 class TrainingScheduleSerializer(serializers.ModelSerializer):
@@ -39,9 +54,22 @@ class TrainingScheduleSerializer(serializers.ModelSerializer):
 
 # Training Session Serializer
 class TrainingSessionSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = TrainingSession
-        fields = ['id', 'schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration', 'feedback']
+        fields = ['id', 'schedule', 'exercise', 'custom_exercise_name', 'repetitions', 'duration', 'feedback', 'image']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            request = self.context.get('request')
+            url = instance.image.url
+            if request:
+                url = request.build_absolute_uri(url)
+            data['image'] = url
+        else:
+            data['image'] = None
+        return data
 
 # Nutrition Plan Serializer
 class NutritionPlanSerializer(serializers.ModelSerializer):

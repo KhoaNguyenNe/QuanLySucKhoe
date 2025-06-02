@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = "http://192.168.1.237:8000/api/";
+const API_BASE = "http://192.168.100.186:8000/api/";
 
 export const API_ENDPOINTS = {
   LOGIN: "auth/jwt/token/",
@@ -11,7 +11,7 @@ export const API_ENDPOINTS = {
   SEND_OTP: "auth/password/send-otp/",
   VERIFY_OTP: "auth/password/confirm-otp/",
 };
- 
+
 // Các endpoint public không cần token
 const publicEndpoints = [
   API_ENDPOINTS.LOGIN,
@@ -125,5 +125,35 @@ export const getReminders = () => api.get("/reminders/");
 export const createReminder = (data) => api.post("/reminders/", data);
 export const deleteReminder = (id) => api.delete(`/reminders/${id}/`);
 export const updateReminder = (id, data) => api.put(`/reminders/${id}/`, data);
+
+export const getExercises = () => api.get("/exercises/");
+
+export const createExercise = (data) => {
+  const config = {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Accept: "application/json",
+    },
+    transformRequest: (data, headers) => {
+      return data;
+    },
+  };
+  return api.post("/exercises/", data, config);
+};
+
+export const updateExercise = (id, data) => {
+  const config = {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Accept: "application/json",
+    },
+    transformRequest: (data, headers) => {
+      return data;
+    },
+  };
+  return api.put(`/exercises/${id}/`, data, config);
+};
+
+export const deleteExercise = (id) => api.delete(`/exercises/${id}/`);
 
 export default api;

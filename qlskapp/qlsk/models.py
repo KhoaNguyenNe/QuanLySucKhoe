@@ -2,6 +2,7 @@ from ckeditor.fields import RichTextField
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
+from cloudinary.models import CloudinaryField
 
 # Custom User Model
 class User(AbstractUser):
@@ -36,8 +37,12 @@ class HealthProfile(models.Model):
 class Exercise(models.Model):
     name = models.CharField(max_length=255)  # Tên bài tập
     description = models.TextField()  # Mô tả bài tập
+    repetitions = models.IntegerField(null=True, blank=True)  # Số lần lặp
     duration = models.IntegerField()  # Thời gian gợi ý (phút)
     calories_burned = models.IntegerField()  # Lượng calo tiêu thụ gợi ý
+    is_custom = models.BooleanField(default=False)  # True nếu là bài tập cá nhân
+    user = models.ForeignKey('User', on_delete=models.CASCADE, null=True, blank=True, related_name='custom_exercises')  # User tạo bài tập cá nhân
+    image = CloudinaryField('image', blank=True, null=True)  # Ảnh bài tập gợi ý hoặc cá nhân
 
     def __str__(self):
         return self.name
@@ -61,7 +66,8 @@ class TrainingSession(models.Model):
     custom_exercise_name = models.CharField(max_length=255, null=True, blank=True)  # Bài tập tự thêm
     repetitions = models.IntegerField(null=True, blank=True)  # Số lần lặp
     duration = models.IntegerField(null=True, blank=True)  # Thời gian thực hiện (phút)
-    feedback = models.TextField(null=True, blank=True)  # Thêm dòng này
+    feedback = models.TextField(null=True, blank=True) 
+    image = models.ImageField(upload_to="training_sessions/%Y/%m/", null=True, blank=True)  # Ảnh bài tập tự thêm
 
     def __str__(self):
         return f"Session in {self.schedule} - {self.exercise or self.custom_exercise_name}"

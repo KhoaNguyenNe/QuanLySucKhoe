@@ -1,4 +1,5 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, parsers
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP
 from .serializers import (
@@ -17,6 +18,7 @@ from django.contrib.auth import get_user_model
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import models
 
 # User ViewSet (chỉ đăng ký, lấy/cập nhật profile)
 class UserViewSet(viewsets.ViewSet):
@@ -87,16 +89,47 @@ class HealthProfileViewSet(viewsets.ViewSet):
 # Exercise ViewSet (chỉ list, retrieve)
 class ExerciseViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.MultiPartParser]
     def list(self, request):
-        exercises = Exercise.objects.all()
+        # Bài tập hệ thống hoặc bài tập cá nhân của user
+        exercises = Exercise.objects.filter(
+            models.Q(is_custom=False) | (models.Q(is_custom=True) & models.Q(user=request.user))
+        )
         serializer = ExerciseSerializer(exercises, many=True)
         return Response(serializer.data)
     def retrieve(self, request, pk=None):
         exercise = Exercise.objects.filter(pk=pk).first()
         if not exercise:
             return Response({"detail": "Not found."}, status=404)
+        # Chỉ cho phép xem bài tập hệ thống hoặc bài tập cá nhân của mình
+        if exercise.is_custom and exercise.user != request.user:
+            return Response({"detail": "Permission denied."}, status=403)
         serializer = ExerciseSerializer(exercise)
         return Response(serializer.data)
+    def create(self, request):
+        # Chỉ cho phép user tạo bài tập cá nhân
+        data = request.data.copy()
+        data['is_custom'] = True
+        serializer = ExerciseSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, is_custom=True)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    def update(self, request, pk=None):
+        exercise = Exercise.objects.filter(pk=pk, user=request.user, is_custom=True).first()
+        if not exercise:
+            return Response({"detail": "Not found or permission denied."}, status=404)
+        serializer = ExerciseSerializer(exercise, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+    def destroy(self, request, pk=None):
+        exercise = Exercise.objects.filter(pk=pk, user=request.user, is_custom=True).first()
+        if not exercise:
+            return Response({"detail": "Not found or permission denied."}, status=404)
+        exercise.delete()
+        return Response(status=204)
 
 # Training Schedule ViewSet (list, create, retrieve)
 class TrainingScheduleViewSet(viewsets.ViewSet):
@@ -121,6 +154,7 @@ class TrainingScheduleViewSet(viewsets.ViewSet):
 # Training Session ViewSet (list, create, retrieve, add feedback)
 class TrainingSessionViewSet(viewsets.ViewSet):
     permission_classes = [IsOwnerOrReadOnly]
+    parser_classes = [parsers.MultiPartParser]
     def list(self, request):
         sessions = TrainingSession.objects.filter(schedule__user=request.user)
         serializer = TrainingSessionSerializer(sessions, many=True)
@@ -137,6 +171,15 @@ class TrainingSessionViewSet(viewsets.ViewSet):
             return Response({"detail": "Not found."}, status=404)
         serializer = TrainingSessionSerializer(session)
         return Response(serializer.data)
+    def update(self, request, pk=None):
+        session = TrainingSession.objects.filter(pk=pk, schedule__user=request.user).first()
+        if not session:
+            return Response({"detail": "Not found."}, status=404)
+        serializer = TrainingSessionSerializer(session, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
     @action(detail=True, methods=['post'])
     def add_feedback(self, request, pk=None):
         session = TrainingSession.objects.filter(pk=pk, schedule__user=request.user).first()

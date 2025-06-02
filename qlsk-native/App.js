@@ -17,6 +17,7 @@ import ReminderScreen from "./app/screens/ReminderScreen";
 import StepCounterScreen from "./app/screens/StepCounterScreen";
 import ReminderAlertProvider from "./ReminderAlertProvider";
 import { StepCounterProvider } from "./app/contexts/StepCounterContext";
+import ExerciseListScreen from "./app/screens/ExerciseListScreen";
 const Stack = createStackNavigator();
 
 import { makeRedirectUri } from "expo-auth-session";
@@ -51,6 +52,10 @@ export default function App() {
               <Stack.Screen
                 name="StepCounterScreen"
                 component={StepCounterScreen}
+              />
+              <Stack.Screen
+                name="ExerciseListScreen"
+                component={ExerciseListScreen}
               />
             </Stack.Navigator>
           </NavigationContainer>

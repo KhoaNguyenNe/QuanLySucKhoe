@@ -291,11 +291,19 @@ export default function ExerciseListScreen() {
       {selected.length > 0 && (
         <TouchableOpacity
           style={styles.startBtn}
-          onPress={() =>
+          onPress={() => {
+            // Đảm bảo các ID là số nguyên
+            const validExercises = selected
+              .map((id) => parseInt(id))
+              .filter((id) => !isNaN(id));
+            if (validExercises.length === 0) {
+              Alert.alert("Lỗi", "Vui lòng chọn ít nhất một bài tập hợp lệ");
+              return;
+            }
             navigation.navigate("WorkoutScreen", {
-              selectedExercises: selected,
-            })
-          }
+              selectedExercises: validExercises,
+            });
+          }}
         >
           <Icon name="play-circle" size={28} color="#fff" />
           <Text

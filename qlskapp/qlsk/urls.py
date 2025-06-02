@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthJournalViewSet
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth import views as auth_views
@@ -19,6 +19,8 @@ router.register(r'training-schedules', TrainingScheduleViewSet, basename='traini
 router.register(r'training-sessions', TrainingSessionViewSet, basename='trainingsession')
 router.register(r'reminders', ReminderViewSet, basename='reminder')
 router.register(r'chat-messages', ChatMessageViewSet, basename='chatmessage')
+router.register(r'workout-sessions', WorkoutSessionViewSet, basename='workoutsession')
+router.register(r'journals', HealthJournalViewSet, basename='journal')
 
 urlpatterns = [
     path('', include(router.urls)),

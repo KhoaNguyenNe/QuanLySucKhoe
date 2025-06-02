@@ -130,3 +130,35 @@ class PasswordResetOTP(models.Model):
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
     is_used = models.BooleanField(default=False)
+
+# Workout Session Model (Lưu trữ quá trình tập luyện theo thời gian thực)
+class WorkoutSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="workout_sessions")
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    total_calories = models.IntegerField(default=0)
+    exercises = models.ManyToManyField(Exercise, through='WorkoutExercise')
+    is_completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        username = self.user.username if self.user else "Unknown User"
+        start_time_str = self.start_time.strftime("%Y-%m-%d %H:%M:%S") if self.start_time else "Unknown Time"
+        return f"Workout Session of {username} at {start_time_str}"
+
+# Workout Exercise Model (Lưu trữ chi tiết bài tập trong buổi tập)
+class WorkoutExercise(models.Model):
+    workout_session = models.ForeignKey(WorkoutSession, on_delete=models.CASCADE)
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    duration = models.IntegerField(default=0)  # Thời gian thực hiện (giây)
+    calories_burned = models.IntegerField(default=0)  # Calo tiêu thụ thực tế
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        try:
+            if not hasattr(self, 'exercise') or not self.exercise:
+                return f"WorkoutExercise {self.id}"
+            if not hasattr(self, 'workout_session') or not self.workout_session:
+                return f"Exercise {self.exercise.name}"
+            return f"{self.exercise.name} in {self.workout_session}"
+        except Exception:
+            return f"WorkoutExercise {self.id}"

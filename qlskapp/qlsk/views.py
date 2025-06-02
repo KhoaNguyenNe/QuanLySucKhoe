@@ -1,11 +1,11 @@
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise
 from .serializers import (
     UserSerializer, HealthProfileSerializer, ExerciseSerializer, TrainingScheduleSerializer,
     TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
-    RegisterSerializer
+    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer
 )
 from django.utils import timezone
 from datetime import timedelta
@@ -403,3 +403,200 @@ class GoogleLoginAPIView(APIView):
             })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+# Workout Session ViewSet
+class WorkoutSessionViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def list(self, request):
+        sessions = WorkoutSession.objects.filter(user=request.user).order_by('-start_time')
+        serializer = WorkoutSessionSerializer(sessions, many=True)
+        return Response(serializer.data)
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            # Kiểm tra danh sách bài tập
+            exercises = request.data.get('exercises', [])
+            if not exercises:
+                return Response(
+                    {"error": "No exercises selected."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Tạo buổi tập mới
+            session = WorkoutSession.objects.create(
+                user=request.user,
+                start_time=timezone.now()
+            )
+
+            # Lấy danh sách ID bài tập
+            exercise_ids = []
+            for ex in exercises:
+                try:
+                    ex_id = int(ex.get('id', 0))
+                    if ex_id > 0:
+                        exercise_ids.append(ex_id)
+                except (ValueError, TypeError):
+                    continue
+            
+            # Kiểm tra xem có ID bài tập hợp lệ không
+            if not exercise_ids:
+                session.delete()
+                return Response(
+                    {"error": "No valid exercise IDs provided."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Lấy các bài tập từ database
+            exercises = Exercise.objects.filter(id__in=exercise_ids)
+            
+            # Kiểm tra xem có tìm thấy bài tập nào không
+            if not exercises.exists():
+                session.delete()
+                return Response(
+                    {"error": "No valid exercises found."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Tạo các bài tập cho buổi tập
+            workout_exercises = []
+            for exercise in exercises:
+                workout_exercise = WorkoutExercise(
+                    workout_session=session,
+                    exercise=exercise,
+                    duration=0,  # Giá trị mặc định
+                    calories_burned=0  # Giá trị mặc định
+                )
+                workout_exercises.append(workout_exercise)
+            
+            # Lưu tất cả các bài tập cùng một lúc
+            WorkoutExercise.objects.bulk_create(workout_exercises)
+
+            # Lấy lại session với các bài tập đã tạo
+            session.refresh_from_db()
+
+            # Serialize và trả về kết quả
+            serializer = WorkoutSessionSerializer(session, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            # Nếu có lỗi, xóa buổi tập nếu đã tạo
+            if 'session' in locals():
+                session.delete()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def retrieve(self, request, pk=None):
+        session = WorkoutSession.objects.filter(pk=pk, user=request.user).first()
+        if not session:
+            return Response({'detail': 'Not found.'}, status=404)
+            
+        serializer = WorkoutSessionSerializer(session)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def complete_exercise(self, request, pk=None):
+        try:
+            print(f"Received data: {request.data}")  # Log dữ liệu nhận được
+            
+            session = WorkoutSession.objects.filter(pk=pk, user=request.user).first()
+            if not session:
+                return Response({'detail': 'Không tìm thấy buổi tập.'}, status=404)
+                
+            exercise_id = request.data.get('exercise_id')
+            duration = request.data.get('duration')
+            calories_burned = request.data.get('calories_burned')
+            
+            print(f"Exercise ID: {exercise_id}, Duration: {duration}, Calories: {calories_burned}")  # Log dữ liệu đã parse
+            
+            # Kiểm tra dữ liệu đầu vào
+            if not exercise_id:
+                return Response({'detail': 'Thiếu ID bài tập.'}, status=400)
+            
+            try:
+                exercise_id = int(exercise_id)
+                duration = int(duration) if duration else 0
+                calories_burned = int(calories_burned) if calories_burned else 0
+            except (ValueError, TypeError):
+                return Response({'detail': 'Dữ liệu không hợp lệ.'}, status=400)
+            
+            # Kiểm tra bài tập có tồn tại không
+            exercise = Exercise.objects.filter(id=exercise_id).first()
+            if not exercise:
+                return Response({'detail': 'Không tìm thấy bài tập.'}, status=404)
+            
+            # Kiểm tra bài tập đã được thêm vào buổi tập chưa
+            workout_exercise = WorkoutExercise.objects.filter(
+                workout_session=session,
+                exercise=exercise
+            ).first()
+            
+            if not workout_exercise:
+                return Response({'detail': 'Bài tập chưa được thêm vào buổi tập.'}, status=400)
+            
+            # Cập nhật thông tin bài tập
+            workout_exercise.duration = duration
+            workout_exercise.calories_burned = calories_burned
+            workout_exercise.save()
+            
+            print(f"Updated workout exercise: {workout_exercise.id}, Calories: {workout_exercise.calories_burned}")  # Log sau khi cập nhật
+            
+            # Tính lại tổng calo của buổi tập
+            workout_exercises = WorkoutExercise.objects.filter(workout_session=session)
+            total_calories = sum(ex.calories_burned for ex in workout_exercises)
+            
+            print(f"Total calories before update: {session.total_calories}")  # Log tổng calo trước khi cập nhật
+            print(f"Calculated total calories: {total_calories}")  # Log tổng calo đã tính
+            
+            session.total_calories = total_calories
+            session.save()
+            
+            print(f"Updated session total calories: {session.total_calories}")  # Log tổng calo sau khi cập nhật
+            
+            return Response({
+                'detail': 'Hoàn thành bài tập.',
+                'workout_exercise': WorkoutExerciseSerializer(workout_exercise).data,
+                'total_calories': total_calories
+            }, status=200)
+            
+        except Exception as e:
+            print(f"Error in complete_exercise: {str(e)}")  # Log lỗi
+            return Response({
+                'detail': f'Lỗi khi hoàn thành bài tập: {str(e)}'
+            }, status=400)
+    
+    @action(detail=True, methods=['post'])
+    def complete_workout(self, request, pk=None):
+        try:
+            session = WorkoutSession.objects.filter(pk=pk, user=request.user).first()
+            if not session:
+                return Response({'detail': 'Không tìm thấy buổi tập.'}, status=404)
+            
+            print(f"Completing workout session: {session.id}")  # Log ID buổi tập
+            
+            # Tính lại tổng calo trước khi hoàn thành
+            workout_exercises = WorkoutExercise.objects.filter(workout_session=session)
+            total_calories = sum(ex.calories_burned for ex in workout_exercises)
+            
+            print(f"Current total calories: {session.total_calories}")  # Log tổng calo hiện tại
+            print(f"Calculated total calories: {total_calories}")  # Log tổng calo đã tính
+            
+            session.end_time = timezone.now()
+            session.is_completed = True
+            session.total_calories = total_calories
+            session.save()
+            
+            print(f"Final total calories: {session.total_calories}")  # Log tổng calo cuối cùng
+            
+            return Response({
+                'detail': 'Hoàn thành buổi tập.',
+                'total_calories': total_calories
+            }, status=200)
+            
+        except Exception as e:
+            print(f"Error in complete_workout: {str(e)}")  # Log lỗi
+            return Response({
+                'detail': f'Lỗi khi hoàn thành buổi tập: {str(e)}'
+            }, status=400)

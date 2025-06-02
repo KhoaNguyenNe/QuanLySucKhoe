@@ -18,6 +18,8 @@ import StepCounterScreen from "./app/screens/StepCounterScreen";
 import ReminderAlertProvider from "./ReminderAlertProvider";
 import { StepCounterProvider } from "./app/contexts/StepCounterContext";
 import ExerciseListScreen from "./app/screens/ExerciseListScreen";
+import WorkoutScreen from "./app/screens/WorkoutScreen";
+import HealthJournalScreen from "./app/screens/HealthJournalScreen";
 const Stack = createStackNavigator();
 
 import { makeRedirectUri } from "expo-auth-session";
@@ -56,6 +58,12 @@ export default function App() {
               <Stack.Screen
                 name="ExerciseListScreen"
                 component={ExerciseListScreen}
+              />
+              <Stack.Screen name="WorkoutScreen" component={WorkoutScreen} />
+              <Stack.Screen
+                name="HealthJournalScreen"
+                component={HealthJournalScreen}
+                options={{ title: "Nhật ký sức khỏe" }}
               />
             </Stack.Navigator>
           </NavigationContainer>

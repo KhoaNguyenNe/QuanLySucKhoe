@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession
 
 
 # User Serializer
@@ -95,6 +95,7 @@ class HealthJournalSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthJournal
         fields = ['id', 'user', 'date', 'content']
+        read_only_fields = ['user']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -123,3 +124,46 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         return user
+
+# Workout Exercise Serializer
+class WorkoutExerciseSerializer(serializers.ModelSerializer):
+    exercise_name = serializers.SerializerMethodField()
+    exercise_image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkoutExercise
+        fields = ['id', 'exercise', 'exercise_name', 'exercise_image', 'duration', 'calories_burned', 'completed_at']
+        read_only_fields = ['duration', 'calories_burned', 'completed_at']
+
+    def get_exercise_name(self, obj):
+        try:
+            return obj.exercise.name if obj.exercise else "Unknown Exercise"
+        except Exception:
+            return "Unknown Exercise"
+
+    def get_exercise_image(self, obj):
+        try:
+            if obj.exercise and obj.exercise.image:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.exercise.image.url)
+                return obj.exercise.image.url
+            return None
+        except Exception:
+            return None
+
+# Workout Session Serializer
+class WorkoutSessionSerializer(serializers.ModelSerializer):
+    exercises = WorkoutExerciseSerializer(source='workoutexercise_set', many=True, read_only=True)
+    user = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkoutSession
+        fields = ['id', 'user', 'start_time', 'end_time', 'total_calories', 'exercises', 'is_completed']
+        read_only_fields = ['start_time', 'end_time', 'total_calories', 'is_completed']
+
+    def get_user(self, obj):
+        try:
+            return obj.user.username if obj.user else "Unknown User"
+        except Exception:
+            return "Unknown User"

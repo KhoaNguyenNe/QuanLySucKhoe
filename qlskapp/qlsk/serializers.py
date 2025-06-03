@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory, WaterSession
+from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory, WaterSession, DietGoal, Meal, MealPlan
 
 
 # User Serializer
@@ -64,12 +64,6 @@ class TrainingSessionSerializer(serializers.ModelSerializer):
         else:
             data['image'] = None
         return data
-
-# Nutrition Plan Serializer
-class NutritionPlanSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = NutritionPlan
-        fields = ['id', 'user', 'title', 'description', 'created_at']
 
 # Reminder Serializer
 class ReminderSerializer(serializers.ModelSerializer):
@@ -173,3 +167,35 @@ class WaterSessionSerializer(serializers.ModelSerializer):
         model = WaterSession
         fields = '__all__'
         read_only_fields = ['user', 'time', 'date']
+
+class DietGoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DietGoal
+        fields = ['id', 'goal_type', 'target_weight', 'target_date', 'created_at', 'is_active']
+        read_only_fields = ['created_at']
+
+class MealSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Meal
+        fields = [
+            'id', 'meal_type', 'name', 'description', 'calories', 'protein',
+            'carbs', 'fat', 'ingredients', 'instructions', 'image'
+        ]
+
+class MealPlanSerializer(serializers.ModelSerializer):
+    meals = MealSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = MealPlan
+        fields = ['id', 'title', 'description', 'total_calories', 'protein', 'carbs', 'fat', 
+                 'created_at', 'is_active', 'meals']
+        read_only_fields = ['created_at']
+
+class MealPlanDetailSerializer(serializers.ModelSerializer):
+    meals = MealSerializer(many=True, read_only=True)
+    class Meta:
+        model = MealPlan
+        fields = [
+            'id', 'title', 'description', 'total_calories', 'protein', 'carbs', 'fat',
+            'created_at', 'meals'
+        ]

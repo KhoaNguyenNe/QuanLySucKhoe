@@ -2,8 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
+    TrainingSessionViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
     TrainingHistoryView, TrainingStatisticsView, WaterSessionListCreateView,
+    create_diet_goal, get_diet_goals, generate_meal_plan, get_meal_plans, MealPlanDetailView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth import views as auth_views
@@ -55,13 +56,8 @@ urlpatterns = [
     path('auth/google-login/', GoogleLoginAPIView.as_view(), name='google-login'),
     
     # Other URLs
-    path('users/<int:user_id>/nutrition-plans/', NutritionPlanViewSet.as_view({'get': 'list'}), name='user-plans'),
-    path('users/<int:user_id>/journals/', HealthJournalViewSet.as_view({'get': 'list'}), name='user-journals'),
     path('users/<int:user_id>/statistics/', UserStatisticsView.as_view(), name='user-statistics'),    
-    path('users/<int:user_id>/nutrition-suggestion/', NutritionSuggestionView.as_view(), name='nutrition-suggestion'),
-    
     path('chat-history/<int:user_id>/<int:expert_id>/', ChatHistoryView.as_view(), name='chat-history'),
-    
     path('reminders/flexible/', FlexibleReminderView.as_view(), name='flexible-reminder'),
     
     path('health-metrics/get/', HealthMetricsViewSet.as_view({'get': 'get_health_metrics'}), name='get-health-metrics'),
@@ -73,4 +69,11 @@ urlpatterns = [
     path('training-history/', TrainingHistoryView.as_view(), name='training-history'),
     path('training-statistics/', TrainingStatisticsView.as_view(), name='training-statistics'),
     path('water-sessions/', WaterSessionListCreateView.as_view(), name='water-session-list-create'),
+    
+    # Nutrition URLs
+    path('diet-goals/', create_diet_goal, name='create-diet-goal'),
+    path('diet-goals/list/', get_diet_goals, name='get-diet-goals'),
+    path('meal-plans/generate/', generate_meal_plan, name='generate-meal-plan'),
+    path('meal-plans/', get_meal_plans, name='get-meal-plans'),
+    path('meal-plans/<int:pk>/', MealPlanDetailView.as_view(), name='get-meal-plan-detail'),
 ]

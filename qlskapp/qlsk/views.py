@@ -1,16 +1,16 @@
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from .models import User, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession
+from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession, DietGoal, MealPlan, Meal
 from .serializers import (
     UserSerializer, ExerciseSerializer, TrainingScheduleSerializer,
-    TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
-    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer, HealthMetricsHistorySerializer, WaterSessionSerializer
+    TrainingSessionSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
+    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer, HealthMetricsHistorySerializer, WaterSessionSerializer, DietGoalSerializer, MealPlanSerializer, MealSerializer, MealPlanDetailSerializer
 )
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.views import APIView
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from .permissions import IsOwnerOrReadOnly, IsExpert, IsOwnerOrExpert
 import random
 from django.core.mail import send_mail
@@ -22,6 +22,12 @@ from django.db import models
 from django.db.models import Sum, Count
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
+import openai
+from django.conf import settings
+from openai import OpenAI
+import requests
+import os
+import re
 
 # User ViewSet (chỉ đăng ký, lấy/cập nhật profile)
 class UserViewSet(viewsets.ViewSet):
@@ -166,13 +172,7 @@ class TrainingSessionViewSet(viewsets.ViewSet):
             return Response({'detail': 'Feedback saved.'}, status=200)
         return Response({'detail': 'Feedback is required or session not found.'}, status=400)
 
-# Nutrition Plan ViewSet (list theo user)
-class NutritionPlanViewSet(viewsets.ViewSet):
-    permission_classes = [IsExpert]
-    def list(self, request, user_id=None):
-        plans = NutritionPlan.objects.filter(user_id=user_id)
-        serializer = NutritionPlanSerializer(plans, many=True)
-        return Response(serializer.data, status = status.HTTP_200_OK)
+
 
 # Reminder ViewSet (CRUD)
 class ReminderViewSet(viewsets.ViewSet):
@@ -276,24 +276,6 @@ class UserStatisticsView(APIView):
         }
         return Response(data, status=200)
 
-class NutritionSuggestionView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def get(self, request, user_id=None):
-        if request.user.role == 'user' and request.user.id != user_id:
-            return Response({'detail': 'Permission denied.'}, status=403)
-        user = User.objects.filter(id=user_id).first()
-        if not user:
-            return Response({'detail': 'User not found.'}, status=404)
-        goal = (user.health_goal or '').lower()
-        if 'tăng cơ' in goal:
-            suggestion = 'Ăn nhiều protein (thịt, cá, trứng, sữa), rau xanh, hạn chế tinh bột xấu.'
-        elif 'giảm cân' in goal:
-            suggestion = 'Ăn nhiều rau xanh, hạn chế tinh bột, ưu tiên thực phẩm ít calo, uống đủ nước.'
-        elif 'duy trì' in goal or 'sức khỏe' in goal:
-            suggestion = 'Ăn đa dạng, cân bằng các nhóm chất, duy trì chế độ ăn lành mạnh.'
-        else:
-            suggestion = 'Hãy nhập mục tiêu sức khỏe để nhận gợi ý thực đơn phù hợp.'
-        return Response({'suggestion': suggestion}, status=200)
 
 class ChatHistoryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -764,3 +746,239 @@ class WaterSessionListCreateView(generics.ListCreateAPIView):
         if not created:
             health.water_intake = total
             health.save()
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_diet_goal(request):
+    serializer = DietGoalSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_diet_goals(request):
+    goals = DietGoal.objects.filter(user=request.user, is_active=True)
+    serializer = DietGoalSerializer(goals, many=True)
+    return Response(serializer.data)
+
+def safe_int(s):
+    try:
+        return int(s)
+    except:
+        return 0
+
+def safe_float(s):
+    try:
+        return float(s)
+    except:
+        return 0
+
+def generate_nutrition_plan(prompt):
+    client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Bạn là một chuyên gia dinh dưỡng."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_meal_plan(request):
+    try:
+        diet_goal = DietGoal.objects.filter(user=request.user, is_active=True).order_by('-created_at').first()
+        prompt = f"""
+Tạo một thực đơn dinh dưỡng cho người dùng với mục tiêu {diet_goal.get_goal_type_display()}.
+Thông tin người dùng:
+- Cân nặng hiện tại: {request.user.weight}kg
+- Chiều cao: {request.user.height}cm
+- Tuổi: {request.user.age}
+- Cân nặng mục tiêu: {diet_goal.target_weight}kg
+- Ngày đạt mục tiêu: {diet_goal.target_date}
+
+Yêu cầu:
+1. Dòng đầu tiên là TIÊU ĐỀ thực đơn (title), NGẮN GỌN, tối đa 6 từ, không chứa mô tả, không giải thích.
+2. Dòng thứ hai là MÔ TẢ tổng quan (1 đoạn ngắn).
+3. Dòng thứ ba là tổng dinh dưỡng, ghi rõ: Calo: <số>, Protein: <số>g, Carbs: <số>g, Fat: <số>g
+4. Sau đó, lần lượt cho từng bữa ăn (Bữa sáng, Bữa trưa, Bữa tối, Bữa phụ), mỗi bữa gồm:
+- Bữa: <loại bữa> (ví dụ: Bữa sáng)
+- Tên món: <tên món>
+- Mô tả: <mô tả ngắn>
+- Calo: <số>
+- Protein: <số>g
+- Carbs: <số>g
+- Fat: <số>g
+- Nguyên liệu: <danh sách nguyên liệu, ngăn cách bằng dấu phẩy>
+- Cách chế biến: <hướng dẫn ngắn gọn>
+
+Chỉ trả về text thuần, không markdown, không ký tự đặc biệt như *, #, không giải thích thêm, không thêm lời chúc, không thêm bất kỳ thông tin nào ngoài các trường trên.
+"""
+        # Gọi ChatGPT API
+        ai_response = generate_nutrition_plan(prompt)
+        # Parse response từ AI và tạo MealPlan
+        meal_plan_data = parse_chatgpt_response(ai_response)
+        meal_plan = MealPlan.objects.create(
+            user=request.user,
+            diet_goal=diet_goal,
+            title=meal_plan_data['title'],
+            description=meal_plan_data['description'],
+            total_calories=meal_plan_data['total_calories'],
+            protein=meal_plan_data['protein'],
+            carbs=meal_plan_data['carbs'],
+            fat=meal_plan_data['fat']
+        )
+        for meal_data in meal_plan_data['meals']:
+            Meal.objects.create(
+                meal_plan=meal_plan,
+                meal_type=meal_data['meal_type'],
+                name=meal_data['name'],
+                description=meal_data['description'],
+                calories=meal_data['calories'],
+                protein=meal_data['protein'],
+                carbs=meal_data['carbs'],
+                fat=meal_data['fat'],
+                ingredients=meal_data['ingredients'],
+                instructions=meal_data['instructions']
+            )
+        serializer = MealPlanSerializer(meal_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_meal_plans(request):
+    meal_plans = MealPlan.objects.filter(user=request.user, is_active=True)
+    serializer = MealPlanSerializer(meal_plans, many=True)
+    return Response(serializer.data)
+
+class MealPlanDetailView(generics.RetrieveAPIView):
+    serializer_class = MealPlanDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = MealPlan.objects.all()
+
+    def get_queryset(self):
+        return MealPlan.objects.filter(user=self.request.user)
+
+def parse_chatgpt_response(response_text):
+    print("== RESPONSE TEXT FROM CHATGPT ==")
+    print(response_text)
+    try:
+        lines = [line.strip() for line in response_text.split('\n') if line.strip()]
+        title = lines[0] if lines else ''
+        description = lines[1] if len(lines) > 1 else ''
+        nutrition_info = {'total_calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0}
+        meals = []
+        i = 2
+        # Parse tổng dinh dưỡng
+        if i < len(lines) and 'calo' in lines[i].lower():
+            calo_match = re.search(r'Calo\s*[:\-]?\s*(\d+)', lines[i], re.I)
+            protein_match = re.search(r'Protein\s*[:\-]?\s*(\d+)', lines[i], re.I)
+            carbs_match = re.search(r'Carbs\s*[:\-]?\s*(\d+)', lines[i], re.I)
+            fat_match = re.search(r'Fat\s*[:\-]?\s*(\d+)', lines[i], re.I)
+            if calo_match:
+                nutrition_info['total_calories'] = int(calo_match.group(1))
+            if protein_match:
+                nutrition_info['protein'] = float(protein_match.group(1))
+            if carbs_match:
+                nutrition_info['carbs'] = float(carbs_match.group(1))
+            if fat_match:
+                nutrition_info['fat'] = float(fat_match.group(1))
+            i += 1
+        # Parse từng bữa ăn
+        meal_type_map = {
+            'bữa sáng': 'breakfast',
+            'bữa trưa': 'lunch',
+            'bữa tối': 'dinner',
+            'bữa phụ': 'snack',
+        }
+        while i < len(lines):
+            line = lines[i].lower()
+            meal_type = None
+            for k, v in meal_type_map.items():
+                if k in line:
+                    meal_type = v
+                    break
+            if meal_type:
+                meal = {'meal_type': meal_type}
+                # Đọc các trường tiếp theo
+                i += 1
+                while i < len(lines) and not any(mt in lines[i].lower() for mt in meal_type_map):
+                    l = lines[i]
+                    if l.startswith('- Tên món:'):
+                        meal['name'] = l.replace('- Tên món:', '').strip()
+                    elif l.startswith('- Mô tả:'):
+                        meal['description'] = l.replace('- Mô tả:', '').strip()
+                    elif l.startswith('- Calo:'):
+                        meal['calories'] = int(re.search(r'(\d+)', l).group(1)) if re.search(r'(\d+)', l) else 0
+                    elif l.startswith('- Protein:'):
+                        meal['protein'] = float(re.search(r'(\d+)', l).group(1)) if re.search(r'(\d+)', l) else 0
+                    elif l.startswith('- Carbs:'):
+                        meal['carbs'] = float(re.search(r'(\d+)', l).group(1)) if re.search(r'(\d+)', l) else 0
+                    elif l.startswith('- Fat:'):
+                        meal['fat'] = float(re.search(r'(\d+)', l).group(1)) if re.search(r'(\d+)', l) else 0
+                    elif l.startswith('- Nguyên liệu:'):
+                        meal['ingredients'] = l.replace('- Nguyên liệu:', '').strip()
+                    elif l.startswith('- Cách chế biến:'):
+                        meal['instructions'] = l.replace('- Cách chế biến:', '').strip()
+                    i += 1
+                # Đảm bảo đủ trường
+                for f in ['name','description','calories','protein','carbs','fat','ingredients','instructions']:
+                    if f not in meal:
+                        meal[f] = '' if f in ['name','description','ingredients','instructions'] else 0
+                meals.append(meal)
+            else:
+                i += 1
+        # Nếu không có tổng dinh dưỡng, tự tính từ các bữa ăn
+        if nutrition_info['total_calories'] == 0:
+            nutrition_info['total_calories'] = sum(m.get('calories', 0) for m in meals)
+        if nutrition_info['protein'] == 0:
+            nutrition_info['protein'] = sum(m.get('protein', 0) for m in meals)
+        if nutrition_info['carbs'] == 0:
+            nutrition_info['carbs'] = sum(m.get('carbs', 0) for m in meals)
+        if nutrition_info['fat'] == 0:
+            nutrition_info['fat'] = sum(m.get('fat', 0) for m in meals)
+        return {
+            'title': title,
+            'description': description,
+            'total_calories': nutrition_info.get('total_calories', 0),
+            'protein': nutrition_info.get('protein', 0),
+            'carbs': nutrition_info.get('carbs', 0),
+            'fat': nutrition_info.get('fat', 0),
+            'meals': meals
+        }
+    except Exception as e:
+        print(f"Error parsing ChatGPT response: {str(e)}")
+        # Trả về dữ liệu mẫu nếu có lỗi
+        return {
+            'title': 'Thực đơn mẫu',
+            'description': 'Mô tả thực đơn',
+            'total_calories': 2000,
+            'protein': 150,
+            'carbs': 200,
+            'fat': 70,
+            'meals': [
+                {
+                    'meal_type': 'breakfast',
+                    'name': 'Bữa sáng mẫu',
+                    'description': 'Mô tả bữa sáng',
+                    'calories': 500,
+                    'protein': 30,
+                    'carbs': 50,
+                    'fat': 20,
+                    'ingredients': 'Nguyên liệu',
+                    'instructions': 'Cách chế biến'
+                }
+            ]
+        }
+
+class UserMealPlanListView(generics.ListAPIView):
+    serializer_class = MealPlanSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return MealPlan.objects.filter(user=self.request.user).order_by('-created_at')

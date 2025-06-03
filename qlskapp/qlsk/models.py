@@ -62,17 +62,6 @@ class TrainingSession(models.Model):
         return f"Session in {self.schedule} - {self.exercise or self.custom_exercise_name}"
 
 
-# Nutrition Plan Model
-class NutritionPlan(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="nutrition_plans")
-    title = models.CharField(max_length=100)  # Tên thực đơn
-    description = models.TextField()  # Mô tả thực đơn
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Nutrition Plan: {self.title} for {self.user.username}"
-
-
 # Reminder Model
 class Reminder(models.Model):
     REMINDER_TYPE_CHOICES = [
@@ -181,3 +170,58 @@ class WaterSession(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.date} - {self.amount}L"
+
+class DietGoal(models.Model):
+    GOAL_CHOICES = [
+        ('muscle_gain', 'Tăng cơ'),
+        ('weight_loss', 'Giảm cân'),
+        ('maintenance', 'Duy trì sức khỏe'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="diet_goals")
+    goal_type = models.CharField(max_length=1024, choices=GOAL_CHOICES)
+    target_weight = models.FloatField(null=True, blank=True)  # Cân nặng mục tiêu
+    target_date = models.DateField(null=True, blank=True)  # Ngày đạt mục tiêu
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s {self.get_goal_type_display()} goal"
+
+class MealPlan(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="meal_plans")
+    diet_goal = models.ForeignKey(DietGoal, on_delete=models.CASCADE, related_name="meal_plans")
+    title = models.CharField(max_length=1024)
+    description = models.TextField()
+    total_calories = models.IntegerField()
+    protein = models.FloatField()  # gram
+    carbs = models.FloatField()    # gram
+    fat = models.FloatField()      # gram
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.title} for {self.user.username}"
+
+class Meal(models.Model):
+    MEAL_TYPE_CHOICES = [
+        ('breakfast', 'Bữa sáng'),
+        ('lunch', 'Bữa trưa'),
+        ('dinner', 'Bữa tối'),
+        ('snack', 'Bữa phụ'),
+    ]
+
+    meal_plan = models.ForeignKey(MealPlan, on_delete=models.CASCADE, related_name="meals")
+    meal_type = models.CharField(max_length=1024, choices=MEAL_TYPE_CHOICES)
+    name = models.CharField(max_length=1024)
+    description = models.TextField()
+    calories = models.IntegerField()
+    protein = models.FloatField()  # gram
+    carbs = models.FloatField()    # gram
+    fat = models.FloatField()      # gram
+    ingredients = models.TextField()  # Danh sách nguyên liệu
+    instructions = models.TextField()  # Hướng dẫn chế biến
+    image = CloudinaryField('image', blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.get_meal_type_display()}: {self.name}"

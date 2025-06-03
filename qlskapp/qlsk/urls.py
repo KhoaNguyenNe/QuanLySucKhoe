@@ -1,8 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet
+    UserViewSet, ExerciseViewSet, TrainingScheduleViewSet,
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
+    TrainingHistoryView, TrainingStatisticsView, WaterSessionListCreateView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth import views as auth_views
@@ -53,10 +54,7 @@ urlpatterns = [
     path('auth/', include('allauth.socialaccount.urls')),
     path('auth/google-login/', GoogleLoginAPIView.as_view(), name='google-login'),
     
-
-    
     # Other URLs
-    path('users/<int:user_id>/health-profile/', HealthProfileViewSet.as_view({'get': 'retrieve', 'put': 'update'}), name='user-health-profile'),
     path('users/<int:user_id>/nutrition-plans/', NutritionPlanViewSet.as_view({'get': 'list'}), name='user-plans'),
     path('users/<int:user_id>/journals/', HealthJournalViewSet.as_view({'get': 'list'}), name='user-journals'),
     path('users/<int:user_id>/statistics/', UserStatisticsView.as_view(), name='user-statistics'),    
@@ -72,4 +70,7 @@ urlpatterns = [
     path('health-metrics/heart-rate/', HealthMetricsViewSet.as_view({'post': 'update_heart_rate'}), name='update-heart-rate'),
     path('health-metrics/bmi/', HealthMetricsViewSet.as_view({'post': 'update_bmi'}), name='update-bmi'),
     path('health-metrics/history/', HealthMetricsViewSet.as_view({'get': 'get_health_history'}), name='get-health-history'),
+    path('training-history/', TrainingHistoryView.as_view(), name='training-history'),
+    path('training-statistics/', TrainingStatisticsView.as_view(), name='training-statistics'),
+    path('water-sessions/', WaterSessionListCreateView.as_view(), name='water-session-list-create'),
 ]

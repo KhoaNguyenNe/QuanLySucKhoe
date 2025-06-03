@@ -16,21 +16,10 @@ class User(AbstractUser):
     weight = models.FloatField(null=True, blank=True)  # Cân nặng (kg)
     age = models.IntegerField(null=True, blank=True)  # Tuổi
     health_goal = models.TextField(null=True, blank=True)  # Mục tiêu sức khỏe
+    bmi = models.FloatField(null=True, blank=True)  # Chỉ số BMI
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
-
-
-# Health Profile Model
-class HealthProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="health_profile")
-    bmi = models.FloatField(null=True, blank=True)  # Chỉ số BMI
-    water_intake = models.FloatField(default=0)  # Lượng nước uống (lít)
-    steps = models.IntegerField(default=0)  # Số bước đi
-    heart_rate = models.IntegerField(null=True, blank=True)  # Nhịp tim
-
-    def __str__(self):
-        return f"Health Profile of {self.user.username}"
 
 
 # Exercise Model (Danh sách bài tập gợi ý)
@@ -183,3 +172,12 @@ class HealthMetricsHistory(models.Model):
 
     def __str__(self):
         return f"Health metrics of {self.user.username} at {self.date} {self.time}"
+
+class WaterSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="water_sessions")
+    date = models.DateField()
+    time = models.TimeField(auto_now_add=True)
+    amount = models.FloatField()  # Đơn vị: lít
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date} - {self.amount}L"

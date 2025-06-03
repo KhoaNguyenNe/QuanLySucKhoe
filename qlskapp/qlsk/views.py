@@ -1,11 +1,11 @@
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory
+from .models import User, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession
 from .serializers import (
-    UserSerializer, HealthProfileSerializer, ExerciseSerializer, TrainingScheduleSerializer,
+    UserSerializer, ExerciseSerializer, TrainingScheduleSerializer,
     TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
-    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer, HealthMetricsHistorySerializer
+    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer, HealthMetricsHistorySerializer, WaterSessionSerializer
 )
 from django.utils import timezone
 from datetime import timedelta
@@ -19,6 +19,9 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import models
+from django.db.models import Sum, Count
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics
 
 # User ViewSet (chỉ đăng ký, lấy/cập nhật profile)
 class UserViewSet(viewsets.ViewSet):
@@ -37,13 +40,6 @@ class UserViewSet(viewsets.ViewSet):
         user = request.user
         if request.method == 'GET':
             serializer = UserSerializer(user)
-            # Lấy health profile nếu có
-            try:
-                health_profile = user.health_profile
-                health_serializer = HealthProfileSerializer(health_profile)
-                health_data = health_serializer.data
-            except HealthProfile.DoesNotExist:
-                health_data = None
             # Thống kê nhanh
             now = timezone.now().date()
             week_ago = now - timedelta(days=7)
@@ -52,7 +48,6 @@ class UserViewSet(viewsets.ViewSet):
             unread_messages = ChatMessage.objects.filter(receiver=user, is_read=False).count()
             response_data = {
                 'user': serializer.data,
-                'health_profile': health_data,
                 'statistics': {
                     'weekly_sessions': week_sessions,
                     'total_reminders': reminders,
@@ -66,25 +61,6 @@ class UserViewSet(viewsets.ViewSet):
                 serializer.save()
                 return Response({'user': serializer.data}, status=200)
             return Response(serializer.errors, status=400)
-
-# Health Profile ViewSet (lấy/cập nhật hồ sơ sức khỏe)
-class HealthProfileViewSet(viewsets.ViewSet):
-    permission_classes = [IsOwnerOrExpert]
-    def retrieve(self, request, user_id=None):
-        profile = HealthProfile.objects.filter(user_id=user_id).first()
-        if profile:
-            serializer = HealthProfileSerializer(profile)
-            return Response(serializer.data, status = status.HTTP_200_OK)
-        return Response({"detail": "Not found."}, status=404)
-    def update(self, request, user_id=None):
-        profile = HealthProfile.objects.filter(user_id=user_id).first()
-        if not profile:
-            return Response({"detail": "Not found."}, status=404)
-        serializer = HealthProfileSerializer(profile, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=200)
-        return Response(serializer.errors, status=400)
 
 # Exercise ViewSet (chỉ list, retrieve)
 class ExerciseViewSet(viewsets.ViewSet):
@@ -272,14 +248,19 @@ class UserStatisticsView(APIView):
         week_ago = now - timedelta(days=7)
         month_ago = now - timedelta(days=30)
         year_ago = now - timedelta(days=365)
-        profile = HealthProfile.objects.filter(user_id=user_id).first()
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            return Response({'detail': 'User not found.'}, status=404)
+        # Lấy chỉ số sức khỏe gần nhất
+        latest_metrics = HealthMetricsHistory.objects.filter(user_id=user_id).order_by('-date', '-time').first()
         week_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=week_ago)
         month_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=month_ago)
         year_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=year_ago)
         def total_calories(sessions):
             return sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
         data = {
-            'profile': HealthProfileSerializer(profile).data if profile else None,
+            'bmi': user.bmi,
+            'latest_metrics': HealthMetricsHistorySerializer(latest_metrics).data if latest_metrics else None,
             'week': {
                 'total_sessions': week_sessions.count(),
                 'total_calories': total_calories(week_sessions),
@@ -606,51 +587,27 @@ class HealthMetricsViewSet(viewsets.ViewSet):
 
     def get_health_metrics(self, request):
         """Lấy các chỉ số sức khỏe hiện tại của người dùng"""
-        try:
-            health_profile = request.user.health_profile
-        except HealthProfile.DoesNotExist:
-            # Tự động tạo hồ sơ sức khỏe nếu chưa có
-            health_profile = HealthProfile.objects.create(
-                user=request.user,
-                water_intake=0,
-                steps=0,
-                heart_rate=0,
-                bmi=0
-            )
-        serializer = HealthProfileSerializer(health_profile)
-        return Response(serializer.data)
+        latest_metrics = HealthMetricsHistory.objects.filter(user=request.user).order_by('-date', '-time').first()
+        data = {
+            'bmi': request.user.bmi,
+            'metrics': HealthMetricsHistorySerializer(latest_metrics).data if latest_metrics else None
+        }
+        return Response(data)
 
     def update_water_intake(self, request):
         """Cập nhật lượng nước uống"""
         try:
-            try:
-                health_profile = request.user.health_profile
-            except HealthProfile.DoesNotExist:
-                # Tự động tạo hồ sơ sức khỏe nếu chưa có
-                health_profile = HealthProfile.objects.create(
-                    user=request.user,
-                    water_intake=0,
-                    steps=0,
-                    heart_rate=0,
-                    bmi=0
-                )
-
             amount = float(request.data.get('amount', 0))  # Lượng nước uống thêm (lít)
-            
-            # Cập nhật tổng lượng nước
-            health_profile.water_intake += amount
-            health_profile.save()
-
-            # Lưu vào lịch sử: chỉ lưu lượng nước vừa nhập
-            HealthMetricsHistory.objects.create(
+            today = timezone.now().date()
+            # Lấy hoặc tạo bản ghi HealthMetricsHistory cho hôm nay
+            history, created = HealthMetricsHistory.objects.get_or_create(
                 user=request.user,
-                water_intake=amount,  # <-- chỉ lưu lượng vừa nhập
-                steps=health_profile.steps,
-                heart_rate=health_profile.heart_rate
+                date=today,
+                defaults={'water_intake': 0}
             )
-
-            serializer = HealthProfileSerializer(health_profile)
-            return Response(serializer.data)
+            history.water_intake += amount
+            history.save()
+            return Response(HealthMetricsHistorySerializer(history).data)
         except ValueError:
             return Response({"detail": "Invalid amount value."}, status=400)
         except Exception as e:
@@ -660,31 +617,42 @@ class HealthMetricsViewSet(viewsets.ViewSet):
         """Cập nhật số bước đi trong ngày"""
         try:
             steps = int(request.data.get('steps', 0))
-            try:
-                health_profile = request.user.health_profile
-            except HealthProfile.DoesNotExist:
-                health_profile = HealthProfile.objects.create(
-                    user=request.user,
-                    water_intake=0,
-                    steps=0,
-                    heart_rate=0,
-                    bmi=0
-                )
-
-            # Cập nhật số bước vào HealthProfile
-            health_profile.steps = steps
-            health_profile.save()
-
-            # Lưu vào lịch sử
-            HealthMetricsHistory.objects.create(
+            today = timezone.now().date()
+            history, created = HealthMetricsHistory.objects.get_or_create(
                 user=request.user,
-                steps=steps,
-                water_intake=health_profile.water_intake,
-                heart_rate=health_profile.heart_rate
+                date=today,
+                defaults={'steps': 0}
             )
+            history.steps = steps
+            history.save()
+            return Response(HealthMetricsHistorySerializer(history).data)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
 
-            serializer = HealthProfileSerializer(health_profile)
-            return Response(serializer.data)
+    def update_heart_rate(self, request):
+        """Cập nhật nhịp tim trong ngày"""
+        try:
+            heart_rate = int(request.data.get('heart_rate', 0))
+            today = timezone.now().date()
+            history, created = HealthMetricsHistory.objects.get_or_create(
+                user=request.user,
+                date=today,
+                defaults={'heart_rate': 0}
+            )
+            history.heart_rate = heart_rate
+            history.save()
+            return Response(HealthMetricsHistorySerializer(history).data)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
+
+    def update_bmi(self, request):
+        """Cập nhật BMI cho user"""
+        try:
+            bmi = float(request.data.get('bmi', 0))
+            user = request.user
+            user.bmi = bmi
+            user.save()
+            return Response({'bmi': user.bmi})
         except Exception as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -694,13 +662,108 @@ class HealthMetricsViewSet(viewsets.ViewSet):
             # Lấy lịch sử trong 7 ngày gần nhất
             end_date = timezone.now().date()
             start_date = end_date - timedelta(days=7)
-            
             history = HealthMetricsHistory.objects.filter(
                 user=request.user,
                 date__range=[start_date, end_date]
             ).order_by('-date', '-time')
-            
             serializer = HealthMetricsHistorySerializer(history, many=True)
             return Response(serializer.data)
         except Exception as e:
             return Response({"detail": str(e)}, status=400)
+
+class TrainingHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=6)
+        # Lấy lịch tập của user trong 7 ngày gần nhất
+        schedules = TrainingSchedule.objects.filter(user=user, date__range=[start_date, end_date])
+        # Lấy các session theo schedule
+        sessions = TrainingSession.objects.filter(schedule__in=schedules)
+        # Gom nhóm theo ngày
+        result = []
+        for i in range(7):
+            day = start_date + timedelta(days=i)
+            day_sessions = sessions.filter(schedule__date=day)
+            session_count = day_sessions.count()
+            total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in day_sessions])
+            result.append({
+                'date': str(day),
+                'session_count': session_count,
+                'total_calories': total_calories
+            })
+        return Response(result)
+
+class TrainingStatisticsView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        mode = request.GET.get('mode', 'week')
+        today = timezone.now().date()
+        data = []
+        if mode == 'week':
+            # Lấy ngày đầu tuần (Chủ nhật)
+            start_of_week = today - timedelta(days=today.weekday() + 1 if today.weekday() < 6 else 0)
+            weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+            for i in range(7):
+                day = start_of_week + timedelta(days=i)
+                schedules = TrainingSchedule.objects.filter(user=user, date=day)
+                sessions = TrainingSession.objects.filter(schedule__in=schedules)
+                session_count = sessions.count()
+                total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+                data.append({
+                    'weekday': weekdays[i],
+                    'date': day.strftime('%d/%m'),
+                    'session_count': session_count,
+                    'total_calories': total_calories
+                })
+        elif mode == 'month':
+            year = today.year
+            for month in range(1, 13):
+                schedules = TrainingSchedule.objects.filter(user=user, date__year=year, date__month=month)
+                sessions = TrainingSession.objects.filter(schedule__in=schedules)
+                session_count = sessions.count()
+                total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+                data.append({
+                    'month': f'{month:02d}/{year}',
+                    'session_count': session_count,
+                    'total_calories': total_calories
+                })
+        elif mode == 'year':
+            years = TrainingSchedule.objects.filter(user=user).dates('date', 'year')
+            for y in years:
+                schedules = TrainingSchedule.objects.filter(user=user, date__year=y.year)
+                sessions = TrainingSession.objects.filter(schedule__in=schedules)
+                session_count = sessions.count()
+                total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+                data.append({
+                    'year': str(y.year),
+                    'session_count': session_count,
+                    'total_calories': total_calories
+                })
+        return Response(data)
+
+class WaterSessionListCreateView(generics.ListCreateAPIView):
+    serializer_class = WaterSessionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return WaterSession.objects.filter(user=self.request.user).order_by('-date', '-time')
+
+    def perform_create(self, serializer):
+        today = timezone.now().date()
+        # Lưu session mới
+        instance = serializer.save(user=self.request.user, date=today)
+        # Tính tổng nước trong ngày
+        total = WaterSession.objects.filter(
+            user=self.request.user, date=today
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        # Cập nhật hoặc tạo HealthMetricsHistory
+        health, created = HealthMetricsHistory.objects.get_or_create(
+            user=self.request.user, date=today,
+            defaults={'water_intake': total}
+        )
+        if not created:
+            health.water_intake = total
+            health.save()

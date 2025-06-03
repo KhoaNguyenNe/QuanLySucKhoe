@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
+from .models import User, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal
 
 
 # Tùy chỉnh tiêu đề và các thông tin trang quản trị
@@ -12,10 +12,6 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'role', 'is_active')
     list_filter = ('role', 'is_active')
     search_fields = ('username', 'email')
-
-@admin.register(HealthProfile)
-class HealthProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'bmi', 'water_intake', 'steps', 'heart_rate')
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):

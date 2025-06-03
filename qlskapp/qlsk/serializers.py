@@ -1,12 +1,12 @@
 from rest_framework import serializers
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory
+from .models import User, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory, WaterSession
 
 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'height', 'weight', 'age', 'health_goal']
+        fields = ['id', 'username', 'email', 'role', 'height', 'weight', 'age', 'health_goal', 'bmi']
         extra_kwargs = {
             'password': {'write_only': True},
             'email': {'required': True}
@@ -19,12 +19,6 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-
-# Health Profile Serializer
-class HealthProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = HealthProfile
-        fields = ['id', 'bmi', 'water_intake', 'steps', 'heart_rate']
 
 # Exercise Serializer
 class ExerciseSerializer(serializers.ModelSerializer):
@@ -173,3 +167,9 @@ class HealthMetricsHistorySerializer(serializers.ModelSerializer):
         model = HealthMetricsHistory
         fields = ['id', 'date', 'time', 'water_intake', 'steps', 'heart_rate']
         read_only_fields = ['id', 'date', 'time']
+
+class WaterSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WaterSession
+        fields = '__all__'
+        read_only_fields = ['user', 'time', 'date']

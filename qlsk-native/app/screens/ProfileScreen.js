@@ -12,9 +12,16 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { Button } from "react-native-paper";
-import { getUserProfile, updateUserProfile } from "../api";
+import {
+  getUserProfile,
+  updateUserProfile,
+  updateWaterIntake,
+  updateHealthProfile,
+  updateSteps,
+} from "../api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStepCounter } from "../contexts/StepCounterContext";
+import WaterIntakeInput from "./Water";
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -78,15 +85,28 @@ export default function ProfileScreen({ navigation }) {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
+      let bmiValue = null;
+      if (height && weight) {
+        const heightInMeters = parseFloat(height) / 100;
+        const weightInKg = parseFloat(weight);
+        bmiValue = (weightInKg / (heightInMeters * heightInMeters)).toFixed(1);
+      }
       await updateUserProfile({
         height: height ? parseFloat(height) : null,
         weight: weight ? parseFloat(weight) : null,
         age: age ? parseInt(age) : null,
         health_goal: goal,
       });
+      // Gọi thêm API cập nhật HealthProfile để lưu BMI
+      if (userInfo && userInfo.id) {
+        await updateHealthProfile(userInfo.id, {
+          bmi: bmiValue ? parseFloat(bmiValue) : null,
+        });
+      }
+      setBMI(bmiValue);
       Alert.alert("Thành công", "Đã lưu thông tin cá nhân!");
     } catch (err) {
-      console.log(err);
+      console.log("Lỗi lưu thông tin:", err?.response?.data || err);
       Alert.alert("Lỗi", "Không thể lưu thông tin. Vui lòng thử lại!");
     } finally {
       setSaving(false);
@@ -96,6 +116,25 @@ export default function ProfileScreen({ navigation }) {
   const handleChangePassword = () => {
     navigation.navigate("ResetPasswordScreen", { isChangePassword: true });
   };
+
+  const handleWaterUpdate = (updatedData) => {
+    setWater(updatedData.water_intake);
+  };
+
+  useEffect(() => {
+    // Gửi số bước mỗi khi thay đổi (nếu muốn)
+    if (steps > 0) {
+      updateSteps(steps);
+    }
+  }, [steps]);
+
+  useEffect(() => {
+    // Gửi số bước mỗi 1 phút bất kể steps có thay đổi hay không
+    const interval = setInterval(() => {
+      updateSteps(steps);
+    }, 60 * 1000); // 1 phút
+    return () => clearInterval(interval);
+  }, [steps]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

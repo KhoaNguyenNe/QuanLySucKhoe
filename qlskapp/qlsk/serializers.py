@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory
 
 
 # User Serializer
@@ -167,3 +167,9 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
             return obj.user.username if obj.user else "Unknown User"
         except Exception:
             return "Unknown User"
+
+class HealthMetricsHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HealthMetricsHistory
+        fields = ['id', 'date', 'time', 'water_intake', 'steps', 'heart_rate']
+        read_only_fields = ['id', 'date', 'time']

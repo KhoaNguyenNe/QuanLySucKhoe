@@ -1,11 +1,11 @@
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise
+from .models import User, HealthProfile, Exercise, TrainingSchedule, TrainingSession, NutritionPlan, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory
 from .serializers import (
     UserSerializer, HealthProfileSerializer, ExerciseSerializer, TrainingScheduleSerializer,
     TrainingSessionSerializer, NutritionPlanSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
-    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer
+    RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer, HealthMetricsHistorySerializer
 )
 from django.utils import timezone
 from datetime import timedelta
@@ -600,3 +600,107 @@ class WorkoutSessionViewSet(viewsets.ViewSet):
             return Response({
                 'detail': f'Lỗi khi hoàn thành buổi tập: {str(e)}'
             }, status=400)
+
+class HealthMetricsViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_health_metrics(self, request):
+        """Lấy các chỉ số sức khỏe hiện tại của người dùng"""
+        try:
+            health_profile = request.user.health_profile
+        except HealthProfile.DoesNotExist:
+            # Tự động tạo hồ sơ sức khỏe nếu chưa có
+            health_profile = HealthProfile.objects.create(
+                user=request.user,
+                water_intake=0,
+                steps=0,
+                heart_rate=0,
+                bmi=0
+            )
+        serializer = HealthProfileSerializer(health_profile)
+        return Response(serializer.data)
+
+    def update_water_intake(self, request):
+        """Cập nhật lượng nước uống"""
+        try:
+            try:
+                health_profile = request.user.health_profile
+            except HealthProfile.DoesNotExist:
+                # Tự động tạo hồ sơ sức khỏe nếu chưa có
+                health_profile = HealthProfile.objects.create(
+                    user=request.user,
+                    water_intake=0,
+                    steps=0,
+                    heart_rate=0,
+                    bmi=0
+                )
+
+            amount = float(request.data.get('amount', 0))  # Lượng nước uống thêm (lít)
+            
+            # Cập nhật tổng lượng nước
+            health_profile.water_intake += amount
+            health_profile.save()
+
+            # Lưu vào lịch sử: chỉ lưu lượng nước vừa nhập
+            HealthMetricsHistory.objects.create(
+                user=request.user,
+                water_intake=amount,  # <-- chỉ lưu lượng vừa nhập
+                steps=health_profile.steps,
+                heart_rate=health_profile.heart_rate
+            )
+
+            serializer = HealthProfileSerializer(health_profile)
+            return Response(serializer.data)
+        except ValueError:
+            return Response({"detail": "Invalid amount value."}, status=400)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
+
+    def update_steps(self, request):
+        """Cập nhật số bước đi trong ngày"""
+        try:
+            steps = int(request.data.get('steps', 0))
+            try:
+                health_profile = request.user.health_profile
+            except HealthProfile.DoesNotExist:
+                health_profile = HealthProfile.objects.create(
+                    user=request.user,
+                    water_intake=0,
+                    steps=0,
+                    heart_rate=0,
+                    bmi=0
+                )
+
+            # Cập nhật số bước vào HealthProfile
+            health_profile.steps = steps
+            health_profile.save()
+
+            # Lưu vào lịch sử
+            HealthMetricsHistory.objects.create(
+                user=request.user,
+                steps=steps,
+                water_intake=health_profile.water_intake,
+                heart_rate=health_profile.heart_rate
+            )
+
+            serializer = HealthProfileSerializer(health_profile)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
+
+    def get_health_history(self, request):
+        """Lấy lịch sử các chỉ số sức khỏe"""
+        try:
+            # Lấy lịch sử trong 7 ngày gần nhất
+            end_date = timezone.now().date()
+            start_date = end_date - timedelta(days=7)
+            
+            history = HealthMetricsHistory.objects.filter(
+                user=request.user,
+                date__range=[start_date, end_date]
+            ).order_by('-date', '-time')
+            
+            serializer = HealthMetricsHistorySerializer(history, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)

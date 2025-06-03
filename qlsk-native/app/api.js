@@ -10,6 +10,9 @@ export const API_ENDPOINTS = {
   PASSWORD_RESET: "auth/password/reset/",
   SEND_OTP: "auth/password/send-otp/",
   VERIFY_OTP: "auth/password/confirm-otp/",
+  WATER_INTAKE: "health-metrics/water/",
+  HEALTH_HISTORY: "health-metrics/history/",
+  STEPS_HISTORY: "health-metrics/steps/",
 };
 
 // Các endpoint public không cần token
@@ -22,6 +25,9 @@ const publicEndpoints = [
 
 const api = axios.create({
   baseURL: API_BASE,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 // Interceptor thêm token cho các API cần xác thực
@@ -170,5 +176,27 @@ export const completeWorkout = (sessionId) =>
 export const createHealthJournal = (data) => api.post("/journals/", data);
 
 export const getHealthJournals = () => api.get("/journals/");
+
+export const updateWaterIntake = (data) => {
+  // Chuyển đổi ml sang lít
+  const amountInLiters = parseFloat(data.amount) / 1000;
+  return api.post(API_ENDPOINTS.WATER_INTAKE, { amount: amountInLiters });
+};
+
+export const getHealthHistory = () => {
+  return api.get(API_ENDPOINTS.HEALTH_HISTORY);
+};
+
+export const updateHealthProfile = (userId, data) => {
+  return api.put(`/users/${userId}/health-profile/`, data);
+};
+
+export const updateSteps = (userId, steps) => {
+  return api.put(`/users/${userId}/health-profile/`, { steps });
+};
+
+export const saveStepsHistory = (data) => {
+  return api.post(API_ENDPOINTS.STEPS_HISTORY, data);
+};
 
 export default api;

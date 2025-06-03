@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -6,7 +6,7 @@ import { useStepCounter } from "../contexts/StepCounterContext";
 
 export default function StepCounterScreen() {
   const navigation = useNavigation();
-  const { steps } = useStepCounter();
+  const { steps, testNewDay } = useStepCounter();
 
   return (
     <View style={styles.container}>
@@ -34,6 +34,11 @@ export default function StepCounterScreen() {
           Số bước sẽ được lưu lại và cập nhật tự động
         </Text>
       </View>
+
+      {/* Nút test giả lập qua ngày mới */}
+      <TouchableOpacity style={styles.testButton} onPress={testNewDay}>
+        <Text style={styles.testButtonText}>Test: Giả lập qua ngày mới</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -85,7 +90,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     position: "absolute",
-    bottom: 40,
+    bottom: 100,
     left: 20,
     right: 20,
     alignItems: "center",
@@ -100,5 +105,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#999",
     textAlign: "center",
+  },
+  testButton: {
+    position: "absolute",
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: "#2d6cf5",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  testButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

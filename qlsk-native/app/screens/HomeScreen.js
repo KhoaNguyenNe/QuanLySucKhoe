@@ -63,13 +63,32 @@ export default function HomeScreen({ navigation }) {
     {
       icon: "dumbbell",
       label: "Bài tập",
-      color: "#2db6f5",
+      color: "#2d6cf5",
       onPress: () => navigation.navigate("ExerciseListScreen"),
+    },
+    {
+      icon: "water",
+      label: "Lượng nước uống",
+      color: "#1ccfcf",
+      onPress: () => {
+        navigation.navigate("Water");
+      },
+    },
+    {
+      icon: "",
+      label: "BCD",
+      color: "#2db6f5",
+      onPress: () => {},
+    },
+    {
+      icon: "",
+      label: "ABC",
+      color: "#2d6cf5",
     },
     {
       icon: "bell-ring",
       label: "Nhắc nhở",
-      color: "#2d6cf5",
+      color: "#1ccfcf",
       onPress: () => {
         navigation.navigate("ReminderScreen");
       },
@@ -77,7 +96,7 @@ export default function HomeScreen({ navigation }) {
     {
       icon: "notebook-edit",
       label: "Nhật ký sức khỏe",
-      color: "#1ccfcf",
+      color: "#2db6f5",
       onPress: () => {
         navigation.navigate("HealthJournalListScreen");
       },
@@ -85,13 +104,13 @@ export default function HomeScreen({ navigation }) {
     {
       icon: "chat-processing",
       label: "Chat với chuyên gia",
-      color: "#2db6f5",
+      color: "#2d6cf5",
       onPress: () => {},
     },
     {
       icon: "chart-bar",
       label: "Thống kê & báo cáo",
-      color: "#2d6cf5",
+      color: "#1ccfcf",
       onPress: () => {},
     },
   ];

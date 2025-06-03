@@ -169,3 +169,17 @@ class WorkoutExercise(models.Model):
             return f"{self.exercise.name} in {self.workout_session}"
         except Exception:
             return f"WorkoutExercise {self.id}"
+
+class HealthMetricsHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="health_metrics_history")
+    date = models.DateField(auto_now_add=True)
+    time = models.TimeField(auto_now_add=True)
+    water_intake = models.FloatField(default=0)  # Lượng nước uống (lít)
+    steps = models.IntegerField(default=0)  # Số bước đi
+    heart_rate = models.IntegerField(null=True, blank=True)  # Nhịp tim
+
+    class Meta:
+        ordering = ['-date', '-time']
+
+    def __str__(self):
+        return f"Health metrics of {self.user.username} at {self.date} {self.time}"

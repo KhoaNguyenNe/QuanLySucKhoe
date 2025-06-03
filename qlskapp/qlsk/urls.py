@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, HealthProfileViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthJournalViewSet
+    TrainingSessionViewSet, NutritionPlanViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, NutritionSuggestionView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth import views as auth_views
@@ -21,6 +21,7 @@ router.register(r'reminders', ReminderViewSet, basename='reminder')
 router.register(r'chat-messages', ChatMessageViewSet, basename='chatmessage')
 router.register(r'workout-sessions', WorkoutSessionViewSet, basename='workoutsession')
 router.register(r'journals', HealthJournalViewSet, basename='journal')
+router.register(r'health-metrics', HealthMetricsViewSet, basename='health-metrics')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -55,11 +56,20 @@ urlpatterns = [
 
     
     # Other URLs
-    path('users/<int:user_id>/health-profile/', HealthProfileViewSet.as_view({'get': 'retrieve'}), name='user-health-profile'),
+    path('users/<int:user_id>/health-profile/', HealthProfileViewSet.as_view({'get': 'retrieve', 'put': 'update'}), name='user-health-profile'),
     path('users/<int:user_id>/nutrition-plans/', NutritionPlanViewSet.as_view({'get': 'list'}), name='user-plans'),
     path('users/<int:user_id>/journals/', HealthJournalViewSet.as_view({'get': 'list'}), name='user-journals'),
-    path('users/<int:user_id>/statistics/', UserStatisticsView.as_view(), name='user-statistics'),
+    path('users/<int:user_id>/statistics/', UserStatisticsView.as_view(), name='user-statistics'),    
     path('users/<int:user_id>/nutrition-suggestion/', NutritionSuggestionView.as_view(), name='nutrition-suggestion'),
+    
     path('chat-history/<int:user_id>/<int:expert_id>/', ChatHistoryView.as_view(), name='chat-history'),
+    
     path('reminders/flexible/', FlexibleReminderView.as_view(), name='flexible-reminder'),
+    
+    path('health-metrics/get/', HealthMetricsViewSet.as_view({'get': 'get_health_metrics'}), name='get-health-metrics'),
+    path('health-metrics/water/', HealthMetricsViewSet.as_view({'post': 'update_water_intake'}), name='update-water-intake'),
+    path('health-metrics/steps/', HealthMetricsViewSet.as_view({'post': 'update_steps'}), name='update-steps'),
+    path('health-metrics/heart-rate/', HealthMetricsViewSet.as_view({'post': 'update_heart_rate'}), name='update-heart-rate'),
+    path('health-metrics/bmi/', HealthMetricsViewSet.as_view({'post': 'update_bmi'}), name='update-bmi'),
+    path('health-metrics/history/', HealthMetricsViewSet.as_view({'get': 'get_health_history'}), name='get-health-history'),
 ]

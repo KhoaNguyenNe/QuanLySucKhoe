@@ -18,7 +18,7 @@ import BackButton from "../components/BackButton";
 import { theme } from "../core/theme";
 import { emailValidator } from "../helpers/emailValidator";
 import { passwordValidator } from "../helpers/passwordValidator";
-import { login } from "../api";
+import { login, getUserProfile } from "../api";
 import SocialLoginButtons from "../components/SocialLoginButtons";
 
 export default function LoginScreen({ navigation }) {
@@ -42,6 +42,15 @@ export default function LoginScreen({ navigation }) {
       // Lưu JWT token vào AsyncStorage
       await AsyncStorage.setItem("access_token", response.data.access);
       await AsyncStorage.setItem("refresh_token", response.data.refresh);
+
+      // Gọi API lấy profile để lấy user_id
+      const profileRes = await getUserProfile();
+      if (profileRes.data && profileRes.data.user && profileRes.data.user.id) {
+        await AsyncStorage.setItem(
+          "user_id",
+          profileRes.data.user.id.toString()
+        );
+      }
 
       navigation.reset({
         index: 0,

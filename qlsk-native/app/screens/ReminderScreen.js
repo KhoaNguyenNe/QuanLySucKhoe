@@ -27,7 +27,7 @@ import {
 } from "../api";
 import { useNavigation } from "@react-navigation/native";
 import { useContext } from "react";
-import { ReminderAlertContext } from "../../ReminderAlertProvider";
+import { ReminderAlertContext } from "../contexts/ReminderAlertProvider";
 
 const REMINDER_TYPES = [
   { key: "water", label: "Uống nước", icon: "cup-water" },

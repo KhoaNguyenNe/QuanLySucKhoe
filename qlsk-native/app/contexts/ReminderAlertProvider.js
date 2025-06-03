@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
-import { getReminders } from "./app/api";
+import { getReminders } from "../api";
 
 export const ReminderAlertContext = React.createContext();
 

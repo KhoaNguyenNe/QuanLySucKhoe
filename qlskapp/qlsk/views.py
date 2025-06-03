@@ -708,10 +708,9 @@ class TrainingStatisticsView(APIView):
             weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
             for i in range(7):
                 day = start_of_week + timedelta(days=i)
-                schedules = TrainingSchedule.objects.filter(user=user, date=day)
-                sessions = TrainingSession.objects.filter(schedule__in=schedules)
+                sessions = WorkoutSession.objects.filter(user=user, start_time__date=day)
                 session_count = sessions.count()
-                total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+                total_calories = sessions.aggregate(Sum('total_calories'))['total_calories__sum'] or 0
                 data.append({
                     'weekday': weekdays[i],
                     'date': day.strftime('%d/%m'),
@@ -721,22 +720,20 @@ class TrainingStatisticsView(APIView):
         elif mode == 'month':
             year = today.year
             for month in range(1, 13):
-                schedules = TrainingSchedule.objects.filter(user=user, date__year=year, date__month=month)
-                sessions = TrainingSession.objects.filter(schedule__in=schedules)
+                sessions = WorkoutSession.objects.filter(user=user, start_time__year=year, start_time__month=month)
                 session_count = sessions.count()
-                total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+                total_calories = sessions.aggregate(Sum('total_calories'))['total_calories__sum'] or 0
                 data.append({
                     'month': f'{month:02d}/{year}',
                     'session_count': session_count,
                     'total_calories': total_calories
                 })
         elif mode == 'year':
-            years = TrainingSchedule.objects.filter(user=user).dates('date', 'year')
+            years = WorkoutSession.objects.filter(user=user).dates('start_time', 'year')
             for y in years:
-                schedules = TrainingSchedule.objects.filter(user=user, date__year=y.year)
-                sessions = TrainingSession.objects.filter(schedule__in=schedules)
+                sessions = WorkoutSession.objects.filter(user=user, start_time__year=y.year)
                 session_count = sessions.count()
-                total_calories = sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+                total_calories = sessions.aggregate(Sum('total_calories'))['total_calories__sum'] or 0
                 data.append({
                     'year': str(y.year),
                     'session_count': session_count,

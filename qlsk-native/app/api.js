@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = "http://192.168.1.128:8000/api/";
+const API_BASE = "http://192.168.100.186:8000/api/";
 
 export const API_ENDPOINTS = {
   LOGIN: "auth/jwt/token/",
@@ -243,6 +243,10 @@ export const getUserDetail = (userId) => api.get(`/users/${userId}/`);
 
 export const getHealthMetricsHistoryByUser = (userId) => {
   return api.get(`/health-metrics/history/?user_id=${userId}`);
+};
+
+export const updateSteps = (steps) => {
+  return api.post(API_ENDPOINTS.STEPS_HISTORY, { steps });
 };
 
 export default api;

@@ -18,6 +18,7 @@ export const StepCounterProvider = ({ children }) => {
     new Date().toISOString().split("T")[0]
   );
   const dateRef = useRef(currentDate);
+  const stepsRef = useRef(steps);
 
   useEffect(() => {
     // Load steps từ AsyncStorage
@@ -45,19 +46,19 @@ export const StepCounterProvider = ({ children }) => {
     return () => subscription && subscription.remove();
   }, [lastStepTime]);
 
-  // Gửi số bước mỗi 1 phút
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
+
   useEffect(() => {
     const interval = setInterval(async () => {
-      let uid = await AsyncStorage.getItem("user_id");
-      if (uid && steps >= 0) {
-        // Cập nhật số bước hiện tại vào HealthProfile
-        updateSteps(uid, steps).catch((err) =>
-          console.log("Lỗi cập nhật steps:", err?.response?.data || err)
-        );
+      console.log("Interval chạy! steps:", stepsRef.current);
+      if (stepsRef.current >= 0) {
+        updateSteps(stepsRef.current)
       }
-    }, 60 * 1000); // 1 phút
+    }, 60000); // 1 phút
     return () => clearInterval(interval);
-  }, [steps]);
+  }, []);
 
   // Reset steps khi sang ngày mới
   useEffect(() => {

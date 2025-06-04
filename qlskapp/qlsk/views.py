@@ -460,6 +460,31 @@ class GoogleLoginAPIView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class FacebookLoginAPIView(APIView):
+    def post(self, request):
+        token = request.data.get('access_token')
+        if not token:
+            return Response({'error': 'Thiếu access_token'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Xác thực access token với Facebook Graph API
+            fb_url = f'https://graph.facebook.com/me?fields=id,name,email&access_token={token}'
+            fb_response = requests.get(fb_url)
+            fb_data = fb_response.json()
+            if 'error' in fb_data or 'email' not in fb_data:
+                return Response({'error': 'Token Facebook không hợp lệ hoặc không lấy được email'}, status=status.HTTP_400_BAD_REQUEST)
+            email = fb_data['email']
+            user, created = User.objects.get_or_create(email=email, defaults={
+                'username': email.split('@')[0],
+                'first_name': fb_data.get('name', ''),
+            })
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 # Workout Session ViewSet
 class WorkoutSessionViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]

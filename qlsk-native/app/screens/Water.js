@@ -53,13 +53,6 @@ export default function WaterScreen() {
       // Lấy lịch sử từng lần nhập nước từ water-sessions
       const response = await getWaterSessions();
       if (response.data) {
-        // Sắp xếp giảm dần theo ngày và giờ
-        const history = response.data.sort(
-          (a, b) =>
-            new Date(b.date + "T" + b.time) - new Date(a.date + "T" + a.time)
-        );
-        setWaterHistory(history);
-
         // Lấy ngày hiện tại theo local (yyyy-mm-dd)
         const now = new Date();
         const todayStr =
@@ -68,6 +61,15 @@ export default function WaterScreen() {
           String(now.getMonth() + 1).padStart(2, "0") +
           "-" +
           String(now.getDate()).padStart(2, "0");
+
+        // Lọc lịch sử nước uống chỉ của ngày hiện tại
+        const todayHistory = response.data
+          .filter((item) => item.date === todayStr)
+          .sort(
+            (a, b) =>
+              new Date(b.date + "T" + b.time) - new Date(a.date + "T" + a.time)
+          );
+        setWaterHistory(todayHistory);
 
         // Lấy tổng nước hôm nay từ health-metrics/history
         const healthRes = await getHealthHistory();

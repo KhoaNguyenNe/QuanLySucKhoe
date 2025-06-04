@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, ReminderViewSet, HealthJournalViewSet, UserStatisticsView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
+    TrainingSessionViewSet, ReminderViewSet, HealthJournalViewSet, UserStatisticsView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, FacebookLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
     TrainingHistoryView, TrainingStatisticsView, WaterSessionListCreateView,
     create_diet_goal, get_diet_goals, generate_meal_plan, get_meal_plans, MealPlanDetailView,
 )
@@ -53,6 +53,7 @@ urlpatterns = [
     path('auth/', include('dj_rest_auth.registration.urls')),
     path('auth/', include('allauth.socialaccount.urls')),
     path('auth/google-login/', GoogleLoginAPIView.as_view(), name='google-login'),
+    path('auth/facebook-login/', FacebookLoginAPIView.as_view(), name='facebook-login'),
     
     # Other URLs
     path('users/<int:user_id>/statistics/', UserStatisticsView.as_view(), name='user-statistics'),    

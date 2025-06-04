@@ -17,6 +17,13 @@ class User(AbstractUser):
     age = models.IntegerField(null=True, blank=True)  # Tuổi
     health_goal = models.TextField(null=True, blank=True)  # Mục tiêu sức khỏe
     bmi = models.FloatField(null=True, blank=True)  # Chỉ số BMI
+    expert = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='clients'
+    )
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
@@ -79,18 +86,6 @@ class Reminder(models.Model):
 
     def __str__(self):
         return f"Reminder for {self.user.username}: {self.get_reminder_type_display()} at {self.time}"
-
-
-# Chat Message Model
-class ChatMessage(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages")
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages")
-    content = models.TextField()  # Nội dung tin nhắn
-    timestamp = models.DateTimeField(auto_now_add=True)  # Thời gian gửi tin nhắn
-    is_read = models.BooleanField(default=False)  # Trạng thái đã đọc
-
-    def __str__(self):
-        return f"Message from {self.sender.username} to {self.receiver.username} at {self.timestamp}"
 
 
 # Health Journal Model

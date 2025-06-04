@@ -14,6 +14,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { updateWaterIntake, getHealthHistory } from "../api";
+import { getWaterSessions, addWaterSession } from "../api";
 
 export default function WaterScreen() {
   const insets = useSafeAreaInsets();
@@ -49,15 +50,14 @@ export default function WaterScreen() {
     setLoading(true);
     setError(null);
     try {
-      const response = await getHealthHistory();
+      // Lấy lịch sử từng lần nhập nước từ water-sessions
+      const response = await getWaterSessions();
       if (response.data) {
-        // Lọc và sắp xếp lịch sử nước uống
-        const history = response.data
-          .filter((item) => item.water_intake > 0)
-          .sort(
-            (a, b) =>
-              new Date(b.date + "T" + b.time) - new Date(a.date + "T" + a.time)
-          );
+        // Sắp xếp giảm dần theo ngày và giờ
+        const history = response.data.sort(
+          (a, b) =>
+            new Date(b.date + "T" + b.time) - new Date(a.date + "T" + a.time)
+        );
         setWaterHistory(history);
 
         // Lấy ngày hiện tại theo local (yyyy-mm-dd)
@@ -69,18 +69,18 @@ export default function WaterScreen() {
           "-" +
           String(now.getDate()).padStart(2, "0");
 
-        // Lọc bản ghi đúng ngày hôm nay
-        const todayHistory = history.filter((item) => item.date === todayStr);
-        if (todayHistory.length > 0) {
-          // Tính tổng lượng nước uống trong ngày
-          const total = todayHistory.reduce(
-            (sum, item) => sum + item.water_intake,
-            0
+        // Lấy tổng nước hôm nay từ health-metrics/history
+        const healthRes = await getHealthHistory();
+        let total = 0;
+        if (healthRes.data) {
+          const todayHealth = healthRes.data.find(
+            (item) => item.date === todayStr
           );
-          setTotalWater(total);
-        } else {
-          setTotalWater(0);
+          if (todayHealth) {
+            total = todayHealth.water_intake || 0;
+          }
         }
+        setTotalWater(total);
       }
     } catch (error) {
       console.error("Lỗi khi lấy lịch sử nước uống:", error);
@@ -99,21 +99,14 @@ export default function WaterScreen() {
     setLoading(true);
     setError(null);
     try {
-      const response = await updateWaterIntake({ amount: parseFloat(amount) });
-      if (response.data) {
-        setAmount("");
-        Alert.alert("Thành công", "Đã cập nhật lượng nước uống!");
-        fetchWaterHistory();
-      }
+      // Lưu từng lần nhập nước vào water-sessions
+      await addWaterSession(parseFloat(amount) / 1000); // Đơn vị lít
+      setAmount("");
+      Alert.alert("Thành công", "Đã cập nhật lượng nước uống!");
+      fetchWaterHistory();
     } catch (error) {
       console.error("Lỗi khi cập nhật lượng nước:", error);
-      if (error.response?.status === 404) {
-        setError(
-          "Không tìm thấy hồ sơ sức khỏe. Vui lòng cập nhật thông tin cá nhân trước."
-        );
-      } else {
-        setError("Không thể cập nhật lượng nước. Vui lòng thử lại sau.");
-      }
+      setError("Không thể cập nhật lượng nước. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -192,7 +185,7 @@ export default function WaterScreen() {
               keyExtractor={(item, index) => index.toString()}
               renderItem={({ item }) => {
                 // Hiển thị đúng lượng nước vừa nhập ở mỗi lần
-                let added = item.water_intake * 1000; // ml
+                let added = item.amount * 1000; // ml
                 return (
                   <View style={styles.historyItem}>
                     <Icon name="cup-water" size={24} color="#007AFF" />

@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, ExerciseViewSet, TrainingScheduleViewSet,
-    TrainingSessionViewSet, ReminderViewSet, ChatMessageViewSet, HealthJournalViewSet, UserStatisticsView, ChatHistoryView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
+    TrainingSessionViewSet, ReminderViewSet, HealthJournalViewSet, UserStatisticsView, FlexibleReminderView, SendOTPView, ConfirmOTPView, GoogleLoginAPIView, WorkoutSessionViewSet, HealthMetricsViewSet,
     TrainingHistoryView, TrainingStatisticsView, WaterSessionListCreateView,
     create_diet_goal, get_diet_goals, generate_meal_plan, get_meal_plans, MealPlanDetailView,
 )
@@ -20,7 +20,6 @@ router.register(r'exercises', ExerciseViewSet, basename='exercise')
 router.register(r'training-schedules', TrainingScheduleViewSet, basename='trainingschedule')
 router.register(r'training-sessions', TrainingSessionViewSet, basename='trainingsession')
 router.register(r'reminders', ReminderViewSet, basename='reminder')
-router.register(r'chat-messages', ChatMessageViewSet, basename='chatmessage')
 router.register(r'workout-sessions', WorkoutSessionViewSet, basename='workoutsession')
 router.register(r'journals', HealthJournalViewSet, basename='journal')
 router.register(r'health-metrics', HealthMetricsViewSet, basename='health-metrics')
@@ -57,7 +56,6 @@ urlpatterns = [
     
     # Other URLs
     path('users/<int:user_id>/statistics/', UserStatisticsView.as_view(), name='user-statistics'),    
-    path('chat-history/<int:user_id>/<int:expert_id>/', ChatHistoryView.as_view(), name='chat-history'),
     path('reminders/flexible/', FlexibleReminderView.as_view(), name='flexible-reminder'),
     
     path('health-metrics/get/', HealthMetricsViewSet.as_view({'get': 'get_health_metrics'}), name='get-health-metrics'),

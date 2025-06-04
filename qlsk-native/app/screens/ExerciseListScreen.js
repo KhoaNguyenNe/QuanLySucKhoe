@@ -25,7 +25,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL = "http://192.168.100.186:8000/";
+const BASE_URL = "http://192.168.1.128:8000/";
 
 export default function ExerciseListScreen() {
   const navigation = useNavigation();

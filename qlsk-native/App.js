@@ -10,6 +10,7 @@ import {
   RegisterScreen,
   ResetPasswordScreen,
   HomeScreen,
+  StatisticsScreen,
 } from "./app/screens";
 import VerifyOTPScreen from "./app/screens/VerifyOTPScreen";
 import ProfileScreen from "./app/screens/ProfileScreen";
@@ -22,6 +23,10 @@ import WorkoutScreen from "./app/screens/WorkoutScreen";
 import HealthJournalScreen from "./app/screens/HealthJournalScreen";
 import HealthJournalListScreen from "./app/screens/HealthJournalListScreen";
 import Water from "./app/screens/Water";
+import DietGoalScreen from "./app/screens/DietGoalScreen";
+import MealPlanGenerationScreen from "./app/screens/MealPlanGenerationScreen";
+import MealPlanDetailScreen from "./app/screens/MealPlanDetailScreen";
+import MealPlanListScreen from "./app/screens/MealPlanListScreen";
 
 const Stack = createStackNavigator();
 
@@ -72,6 +77,29 @@ export default function App() {
                 component={HealthJournalListScreen}
               />
               <Stack.Screen name="Water" component={Water} />
+              <Stack.Screen
+                name="StatisticsScreen"
+                component={StatisticsScreen}
+              />
+              <Stack.Screen
+                name="DietGoal"
+                component={DietGoalScreen}
+                options={{ title: "Mục tiêu dinh dưỡng" }}
+              />
+              <Stack.Screen
+                name="MealPlanGenerationScreen"
+                component={MealPlanGenerationScreen}
+                options={{ title: "Tạo thực đơn" }}
+              />
+              <Stack.Screen
+                name="MealPlanDetailScreen"
+                component={MealPlanDetailScreen}
+                options={{ title: "Chi tiết thực đơn" }}
+              />
+              <Stack.Screen
+                name="MealPlanListScreen"
+                component={MealPlanListScreen}
+              />
             </Stack.Navigator>
           </NavigationContainer>
         </Provider>

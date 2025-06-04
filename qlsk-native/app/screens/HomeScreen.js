@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getUserProfile } from "../api";
+import { getUserProfile, getExperts } from "../api";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 export default function HomeScreen({ navigation }) {
@@ -75,15 +75,20 @@ export default function HomeScreen({ navigation }) {
       },
     },
     {
-      icon: "",
-      label: "BCD",
+      icon: "food",
+      label: "Gợi ý thực đơn dinh dưỡng",
       color: "#2db6f5",
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate("DietGoal");
+      },
     },
     {
-      icon: "",
-      label: "ABC",
+      icon: "food-fork-drink",
+      label: "Coi lại thực đơn",
       color: "#2d6cf5",
+      onPress: () => {
+        navigation.navigate("MealPlanListScreen");
+      },
     },
     {
       icon: "bell-ring",
@@ -103,15 +108,19 @@ export default function HomeScreen({ navigation }) {
     },
     {
       icon: "chat-processing",
-      label: "Chat với chuyên gia",
+      label: "",
       color: "#2d6cf5",
-      onPress: () => {},
+      onPress: async () => {
+        
+      },
     },
     {
       icon: "chart-bar",
       label: "Thống kê & báo cáo",
       color: "#1ccfcf",
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate("StatisticsScreen");
+      },
     },
   ];
 
@@ -243,5 +252,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: -24,
     elevation: 4,
+  },
+  menuContainer: {
+    padding: 16,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#eee",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  menuText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#222",
   },
 });

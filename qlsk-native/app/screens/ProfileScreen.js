@@ -16,12 +16,14 @@ import {
   getUserProfile,
   updateUserProfile,
   updateWaterIntake,
-  updateHealthProfile,
+  updateBMI,
+  getHealthHistory,
   updateSteps,
 } from "../api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStepCounter } from "../contexts/StepCounterContext";
 import WaterIntakeInput from "./Water";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -31,19 +33,52 @@ export default function ProfileScreen({ navigation }) {
   const [weight, setWeight] = useState("");
   const [age, setAge] = useState("");
   const [goal, setGoal] = useState("");
-  // Giả lập các chỉ số sức khỏe
   const [bmi, setBMI] = useState("");
-  const [water, setWater] = useState("");
-  const [steps, setSteps] = useState("");
-  const [heartRate, setHeartRate] = useState("");
+  const [todayWater, setTodayWater] = useState("--");
+  const [todayHeartRate, setTodayHeartRate] = useState("--");
   const [saving, setSaving] = useState(false);
-  const { steps: realtimeSteps } = useStepCounter();
+  const { steps: realtimeSteps, testNewDay } = useStepCounter();
+
+  // Lưu số bước xuống database mỗi phút
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (userInfo && userInfo.id && typeof realtimeSteps === "number") {
+        try {
+          await updateSteps(userInfo.id, realtimeSteps);
+        } catch (err) {
+          // Có thể log lỗi nếu cần
+        }
+      }
+    }, 60 * 1000); // 1 phút
+    return () => clearInterval(interval);
+  }, [userInfo, realtimeSteps]);
+
+  // Reset số bước khi sang ngày mới (dùng testNewDay từ context nếu muốn test thủ công)
+  useEffect(() => {
+    let lastDate = new Date().toISOString().split("T")[0];
+    const interval = setInterval(() => {
+      const today = new Date().toISOString().split("T")[0];
+      if (today !== lastDate) {
+        // Reset steps về 0 (gọi testNewDay từ context)
+        testNewDay && testNewDay();
+        lastDate = today;
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [testNewDay]);
 
   useEffect(() => {
     fetchProfile();
+    fetchTodayHealth();
   }, []);
 
-  // Thêm hàm calculateBMI
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProfile();
+      fetchTodayHealth();
+    }, [])
+  );
+
   const calculateBMI = () => {
     if (height && weight) {
       const heightInMeters = parseFloat(height) / 100;
@@ -57,7 +92,6 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  // Cập nhật BMI khi height hoặc weight thay đổi
   useEffect(() => {
     calculateBMI();
   }, [height, weight]);
@@ -71,14 +105,24 @@ export default function ProfileScreen({ navigation }) {
       setWeight(res.data.user.weight ? String(res.data.user.weight) : "");
       setAge(res.data.user.age ? String(res.data.user.age) : "");
       setGoal(res.data.user.health_goal || "");
-      // Nếu có health_profile thì lấy các chỉ số
-      if (res.data.health_profile) {
-        setWater(res.data.health_profile.water_intake || "");
-        setSteps(res.data.health_profile.steps || "");
-        setHeartRate(res.data.health_profile.heart_rate || "");
-      }
+      setBMI(res.data.user.bmi || "");
     } catch (err) {
       Alert.alert("Lỗi", "Không thể lấy thông tin hồ sơ.");
+    }
+  };
+
+  const fetchTodayHealth = async () => {
+    try {
+      const res = await getHealthHistory();
+      if (res.data) {
+        const today = new Date().toISOString().split("T")[0];
+        const todayData = res.data.find((item) => item.date === today);
+        setTodayWater(todayData ? todayData.water_intake : "--");
+        setTodayHeartRate(todayData ? todayData.heart_rate : "--");
+      }
+    } catch (e) {
+      setTodayWater("--");
+      setTodayHeartRate("--");
     }
   };
 
@@ -96,13 +140,8 @@ export default function ProfileScreen({ navigation }) {
         weight: weight ? parseFloat(weight) : null,
         age: age ? parseInt(age) : null,
         health_goal: goal,
+        bmi: bmiValue ? parseFloat(bmiValue) : null,
       });
-      // Gọi thêm API cập nhật HealthProfile để lưu BMI
-      if (userInfo && userInfo.id) {
-        await updateHealthProfile(userInfo.id, {
-          bmi: bmiValue ? parseFloat(bmiValue) : null,
-        });
-      }
       setBMI(bmiValue);
       Alert.alert("Thành công", "Đã lưu thông tin cá nhân!");
     } catch (err) {
@@ -116,25 +155,6 @@ export default function ProfileScreen({ navigation }) {
   const handleChangePassword = () => {
     navigation.navigate("ResetPasswordScreen", { isChangePassword: true });
   };
-
-  const handleWaterUpdate = (updatedData) => {
-    setWater(updatedData.water_intake);
-  };
-
-  useEffect(() => {
-    // Gửi số bước mỗi khi thay đổi (nếu muốn)
-    if (steps > 0) {
-      updateSteps(steps);
-    }
-  }, [steps]);
-
-  useEffect(() => {
-    // Gửi số bước mỗi 1 phút bất kể steps có thay đổi hay không
-    const interval = setInterval(() => {
-      updateSteps(steps);
-    }, 60 * 1000); // 1 phút
-    return () => clearInterval(interval);
-  }, [steps]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -246,7 +266,9 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <View style={styles.infoRow}>
             <Icon name="cup-water" size={22} color="#007AFF" />
-            <Text style={styles.infoValue}>Nước uống: {water || "--"} lít</Text>
+            <Text style={styles.infoValue}>
+              Nước uống: {todayWater ?? "--"} lít
+            </Text>
           </View>
           <View style={styles.infoRow}>
             <Icon name="walk" size={22} color="#007AFF" />
@@ -256,7 +278,9 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <View style={styles.infoRow}>
             <Icon name="heart-pulse" size={22} color="#007AFF" />
-            <Text style={styles.infoValue}>Nhịp tim: {heartRate || "--"}</Text>
+            <Text style={styles.infoValue}>
+              Nhịp tim: {todayHeartRate ?? "--"}
+            </Text>
           </View>
         </View>
 

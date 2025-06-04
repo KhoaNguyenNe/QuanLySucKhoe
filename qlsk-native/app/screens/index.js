@@ -5,3 +5,4 @@ export { default as ResetPasswordScreen } from "./ResetPasswordScreen";
 export { default as HomeScreen } from "./HomeScreen";
 export { default as ProfileScreen } from "./ProfileScreen";
 export { default as ExerciseListScreen } from "./ExerciseListScreen";
+export { default as StatisticsScreen } from "./StatisticsScreen";

@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = "http://192.168.100.186:8000/api/";
+const API_BASE = "http://192.168.1.128:8000/api/";
 
 export const API_ENDPOINTS = {
   LOGIN: "auth/jwt/token/",
@@ -187,16 +187,52 @@ export const getHealthHistory = () => {
   return api.get(API_ENDPOINTS.HEALTH_HISTORY);
 };
 
-export const updateHealthProfile = (userId, data) => {
-  return api.put(`/users/${userId}/health-profile/`, data);
-};
-
-export const updateSteps = (userId, steps) => {
-  return api.put(`/users/${userId}/health-profile/`, { steps });
-};
-
 export const saveStepsHistory = (data) => {
   return api.post(API_ENDPOINTS.STEPS_HISTORY, data);
+};
+
+// Lấy thống kê tập luyện (tổng hợp tuần/tháng/năm)
+export const getUserStatistics = (userId) => {
+  return api.get(`/users/${userId}/statistics/`);
+};
+
+// Lấy lịch sử sức khỏe 7 ngày gần nhất (bước đi, nước uống...)
+export const getHealthMetricsHistory = () => {
+  return api.get(API_ENDPOINTS.HEALTH_HISTORY);
+};
+
+// Lấy lịch sử tập luyện 7 ngày gần nhất (số buổi tập, calo)
+export const getTrainingHistory = () => {
+  return api.get("/training-history/");
+};
+
+// Lấy thống kê tập luyện đa chế độ (tuần/tháng/năm)
+export const getTrainingStatistics = (mode = "week") => {
+  return api.get(`/training-statistics/?mode=${mode}`);
+};
+
+export const getWaterSessions = () => api.get("/water-sessions/");
+export const addWaterSession = (amount) =>
+  api.post("/water-sessions/", { amount });
+
+// Cập nhật BMI vào user
+export const updateBMI = (bmi) => {
+  return api.put(API_ENDPOINTS.PROFILE, { bmi });
+};
+
+// Chat APIs
+export const sendMessage = async (messageData) => {
+  return await api.post("/chat-messages/", messageData);
+};
+
+export const getChatHistory = async (userId, expertId) => {
+  return await api.get(`/chat-history/${userId}/${expertId}/`);
+};
+
+export const markMessagesAsRead = async (messageIds) => {
+  return await api.post("/chat-messages/mark_as_read/", {
+    message_ids: messageIds,
+  });
 };
 
 export default api;

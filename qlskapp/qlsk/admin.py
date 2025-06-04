@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, ChatMessage, HealthJournal, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession, DietGoal, MealPlan, Meal
+from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, HealthJournal, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession, DietGoal, MealPlan, Meal
 
 
 # Tùy chỉnh tiêu đề và các thông tin trang quản trị
@@ -33,11 +33,6 @@ class TrainingSessionAdmin(admin.ModelAdmin):
 class ReminderAdmin(admin.ModelAdmin):
     list_display = ('user', 'reminder_type', 'date', 'time', 'message', 'enabled')
     list_filter = ('reminder_type', 'enabled')
-
-@admin.register(ChatMessage)
-class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ('sender', 'receiver', 'timestamp', 'is_read')
-    list_filter = ('is_read',)
 
 @admin.register(HealthJournal)
 class HealthJournalAdmin(admin.ModelAdmin):

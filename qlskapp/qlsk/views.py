@@ -1,10 +1,10 @@
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, ChatMessage, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession, DietGoal, MealPlan, Meal
+from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, HealthJournal, PasswordResetOTP, WorkoutSession, WorkoutExercise, HealthMetricsHistory, WaterSession, DietGoal, MealPlan, Meal
 from .serializers import (
     UserSerializer, ExerciseSerializer, TrainingScheduleSerializer,
-    TrainingSessionSerializer, ReminderSerializer, ChatMessageSerializer, HealthJournalSerializer,
+    TrainingSessionSerializer, ReminderSerializer, HealthJournalSerializer,
     RegisterSerializer, WorkoutSessionSerializer, WorkoutExerciseSerializer, HealthMetricsHistorySerializer, WaterSessionSerializer, DietGoalSerializer, MealPlanSerializer, MealSerializer, MealPlanDetailSerializer
 )
 from django.utils import timezone
@@ -33,6 +33,13 @@ import re
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+        queryset = User.objects.all()
+        role = self.request.query_params.get('role')
+        if role:
+            queryset = queryset.filter(role=role)
+        return queryset
+
     @action(detail=False, methods=['post'])
     def register(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -51,13 +58,11 @@ class UserViewSet(viewsets.ViewSet):
             week_ago = now - timedelta(days=7)
             week_sessions = TrainingSession.objects.filter(schedule__user=user, schedule__date__gte=week_ago).count()
             reminders = Reminder.objects.filter(user=user).count()
-            unread_messages = ChatMessage.objects.filter(receiver=user, is_read=False).count()
             response_data = {
                 'user': serializer.data,
                 'statistics': {
                     'weekly_sessions': week_sessions,
                     'total_reminders': reminders,
-                    'unread_messages': unread_messages
                 }
             }
             return Response(response_data, status=status.HTTP_200_OK)
@@ -67,6 +72,11 @@ class UserViewSet(viewsets.ViewSet):
                 serializer.save()
                 return Response({'user': serializer.data}, status=200)
             return Response(serializer.errors, status=400)
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = UserSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 # Exercise ViewSet (chỉ list, retrieve)
 class ExerciseViewSet(viewsets.ViewSet):
@@ -172,8 +182,6 @@ class TrainingSessionViewSet(viewsets.ViewSet):
             return Response({'detail': 'Feedback saved.'}, status=200)
         return Response({'detail': 'Feedback is required or session not found.'}, status=400)
 
-
-
 # Reminder ViewSet (CRUD)
 class ReminderViewSet(viewsets.ViewSet):
     permission_classes = [IsOwnerOrReadOnly]
@@ -208,21 +216,6 @@ class ReminderViewSet(viewsets.ViewSet):
             return Response({"detail": "Not found."}, status=404)
         reminder.delete()
         return Response(status=204)
-
-# Chat Message ViewSet (list, create)
-class ChatMessageViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-    def list(self, request):
-        messages = ChatMessage.objects.filter(sender=request.user) | ChatMessage.objects.filter(receiver=request.user)
-        messages = messages.order_by('timestamp')
-        serializer = ChatMessageSerializer(messages, many=True)
-        return Response(serializer.data)
-    def create(self, request):
-        serializer = ChatMessageSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(sender=request.user)
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
 
 # Health Journal ViewSet (list, create)
 class HealthJournalViewSet(viewsets.ViewSet):
@@ -275,19 +268,6 @@ class UserStatisticsView(APIView):
             }
         }
         return Response(data, status=200)
-
-
-class ChatHistoryView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def get(self, request, user_id=None, expert_id=None):
-        if request.user.role == 'user' and request.user.id != user_id:
-            return Response({'detail': 'Permission denied.'}, status=403)
-        if request.user.role == 'expert' and request.user.id != expert_id:
-            return Response({'detail': 'Permission denied.'}, status=403)
-        messages = ChatMessage.objects.filter(sender_id=user_id, receiver_id=expert_id) | ChatMessage.objects.filter(sender_id=expert_id, receiver_id=user_id)
-        messages = messages.order_by('timestamp')
-        serializer = ChatMessageSerializer(messages, many=True)
-        return Response(serializer.data, status=200)
 
 class FlexibleReminderView(APIView):
     permission_classes = [permissions.IsAuthenticated]

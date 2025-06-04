@@ -1,16 +1,20 @@
 from rest_framework import serializers
-from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, ChatMessage, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory, WaterSession, DietGoal, Meal, MealPlan
+from .models import User, Exercise, TrainingSchedule, TrainingSession, Reminder, HealthJournal, WorkoutExercise, WorkoutSession, HealthMetricsHistory, WaterSession, DietGoal, Meal, MealPlan
 
 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
+    num_clients = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'height', 'weight', 'age', 'health_goal', 'bmi']
+        fields = ['id', 'username', 'email', 'role', 'height', 'weight', 'age', 'health_goal', 'bmi', 'num_clients', 'expert']
         extra_kwargs = {
             'password': {'write_only': True},
             'email': {'required': True}
         }
+
+    def get_num_clients(self, obj):
+        return obj.clients.count()
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -71,12 +75,6 @@ class ReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reminder
         fields = ['id', 'user', 'reminder_type', 'date', 'time', 'message', 'repeat_days', 'enabled']
-
-# Chat Message Serializer
-class ChatMessageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ChatMessage
-        fields = ['id', 'sender', 'receiver', 'content', 'timestamp']
 
 # Health Journal Serializer
 class HealthJournalSerializer(serializers.ModelSerializer):

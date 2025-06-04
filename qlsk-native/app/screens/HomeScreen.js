@@ -7,17 +7,27 @@ import {
   Image,
   Alert,
   ScrollView,
+  FlatList,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getUserProfile, getExperts } from "../api";
+import { getUserProfile, getMyClients, getNewLinkedUsers } from "../api";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 export default function HomeScreen({ navigation }) {
   const [userInfo, setUserInfo] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(false);
 
   useEffect(() => {
     fetchUserInfo();
   }, []);
+
+  useEffect(() => {
+    if (userInfo?.user?.role === "expert") {
+      fetchClients();
+      notifyNewLinkedUsers();
+    }
+  }, [userInfo]);
 
   const fetchUserInfo = async () => {
     try {
@@ -33,6 +43,31 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const fetchClients = async () => {
+    setLoadingClients(true);
+    try {
+      const res = await getMyClients();
+      setClients(res.data);
+    } catch (err) {
+      setClients([]);
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  const notifyNewLinkedUsers = async () => {
+    try {
+      const res = await getNewLinkedUsers();
+      if (res.data && res.data.length > 0) {
+        const names = res.data.map((u) => u.username).join(", ");
+        Alert.alert(
+          "Thông báo",
+          `Bạn vừa được liên kết với người dùng mới: ${names}`
+        );
+      }
+    } catch (err) {}
+  };
+
   const handleLogout = async () => {
     await AsyncStorage.removeItem("access_token");
     await AsyncStorage.removeItem("refresh_token");
@@ -42,23 +77,35 @@ export default function HomeScreen({ navigation }) {
   const roleLabel =
     userInfo?.user?.role === "expert" ? "Chuyên gia/HLV" : "Người dùng";
 
-  // Danh sách chức năng dạng card
-  const features = [
+  // Danh sách chức năng cho chuyên gia
+  const featuresExpert = [
+    {
+      icon: "account-group",
+      label: "Danh sách người dùng liên kết",
+      color: "#1ccfcf",
+      onPress: () => navigation.navigate("LinkedClientsScreen"),
+    },
+    {
+      icon: "chat",
+      label: "Chat với người dùng",
+      color: "#2db6f5",
+      onPress: () => navigation.navigate(""),
+    },
+  ];
+
+  // Danh sách chức năng cho người dùng
+  const featuresUser = [
     {
       icon: "account-heart",
       label: "Hồ sơ sức khỏe",
       color: "#1ccfcf",
-      onPress: () => {
-        navigation.navigate("ProfileScreen");
-      },
+      onPress: () => navigation.navigate("ProfileScreen"),
     },
     {
       icon: "walk",
       label: "Đếm số bước đi",
       color: "#2db6f5",
-      onPress: () => {
-        navigation.navigate("StepCounterScreen");
-      },
+      onPress: () => navigation.navigate("StepCounterScreen"),
     },
     {
       icon: "dumbbell",
@@ -70,60 +117,89 @@ export default function HomeScreen({ navigation }) {
       icon: "water",
       label: "Lượng nước uống",
       color: "#1ccfcf",
-      onPress: () => {
-        navigation.navigate("Water");
-      },
+      onPress: () => navigation.navigate("Water"),
     },
     {
       icon: "food",
       label: "Gợi ý thực đơn dinh dưỡng",
       color: "#2db6f5",
-      onPress: () => {
-        navigation.navigate("DietGoal");
-      },
+      onPress: () => navigation.navigate("DietGoal"),
     },
     {
       icon: "food-fork-drink",
       label: "Coi lại thực đơn",
       color: "#2d6cf5",
-      onPress: () => {
-        navigation.navigate("MealPlanListScreen");
-      },
+      onPress: () => navigation.navigate("MealPlanListScreen"),
     },
     {
       icon: "bell-ring",
       label: "Nhắc nhở",
       color: "#1ccfcf",
-      onPress: () => {
-        navigation.navigate("ReminderScreen");
-      },
+      onPress: () => navigation.navigate("ReminderScreen"),
     },
     {
       icon: "notebook-edit",
       label: "Nhật ký sức khỏe",
       color: "#2db6f5",
-      onPress: () => {
-        navigation.navigate("HealthJournalListScreen");
-      },
+      onPress: () => navigation.navigate("HealthJournalListScreen"),
     },
     {
-      icon: "chat-processing",
-      label: "",
+      icon: "account-question",
+      label: "Liên kết với chuyên gia",
       color: "#2d6cf5",
-      onPress: async () => {
-        
-      },
+      onPress: () => navigation.navigate("ExpertListScreen"),
     },
     {
       icon: "chart-bar",
       label: "Thống kê & báo cáo",
       color: "#1ccfcf",
-      onPress: () => {
-        navigation.navigate("StatisticsScreen");
-      },
+      onPress: () => navigation.navigate("StatisticsScreen"),
     },
   ];
 
+  // Nếu là chuyên gia, chỉ render featuresExpert
+  if (userInfo?.user?.role === "expert") {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.Box}>
+            <View>
+              <Text style={styles.name}>
+                {userInfo?.user?.username || "..."}
+              </Text>
+              <Text style={styles.role}>{roleLabel}</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+            <Icon name="logout" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.cardList}
+          showsVerticalScrollIndicator={false}
+        >
+          {featuresExpert.map((item, idx) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[styles.card, { backgroundColor: item.color }]}
+              onPress={item.onPress}
+              activeOpacity={0.85}
+            >
+              <Icon
+                name={item.icon}
+                size={36}
+                color="#fff"
+                style={{ marginRight: 16 }}
+              />
+              <Text style={styles.cardLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Nếu là user, render featuresUser
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -142,7 +218,7 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={styles.cardList}
         showsVerticalScrollIndicator={false}
       >
-        {features.map((item, idx) => (
+        {featuresUser.map((item, idx) => (
           <TouchableOpacity
             key={item.label}
             style={[styles.card, { backgroundColor: item.color }]}
@@ -252,6 +328,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: -24,
     elevation: 4,
+  },
+  clientCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f2f2f2",
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 14,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   menuContainer: {
     padding: 16,

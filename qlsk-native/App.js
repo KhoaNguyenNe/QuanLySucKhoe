@@ -27,6 +27,9 @@ import DietGoalScreen from "./app/screens/DietGoalScreen";
 import MealPlanGenerationScreen from "./app/screens/MealPlanGenerationScreen";
 import MealPlanDetailScreen from "./app/screens/MealPlanDetailScreen";
 import MealPlanListScreen from "./app/screens/MealPlanListScreen";
+import ExpertListScreen from "./app/screens/ExpertListScreen";
+import ClientStatisticsScreen from "./app/screens/ClientStatisticsScreen";
+import LinkedClientsScreen from "./app/screens/LinkedClientsScreen";
 
 const Stack = createStackNavigator();
 
@@ -99,6 +102,21 @@ export default function App() {
               <Stack.Screen
                 name="MealPlanListScreen"
                 component={MealPlanListScreen}
+              />
+              <Stack.Screen
+                name="ExpertListScreen"
+                component={ExpertListScreen}
+                options={{ title: "Chọn chuyên gia" }}
+              />
+              <Stack.Screen
+                name="ClientStatisticsScreen"
+                component={ClientStatisticsScreen}
+                options={{ title: "Thống kê người dùng" }}
+              />
+              <Stack.Screen
+                name="LinkedClientsScreen"
+                component={LinkedClientsScreen}
+                options={{ title: "Người dùng liên kết" }}
               />
             </Stack.Navigator>
           </NavigationContainer>

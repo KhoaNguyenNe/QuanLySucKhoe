@@ -30,8 +30,10 @@ import os
 import re
 
 # User ViewSet (chỉ đăng ký, lấy/cập nhật profile)
-class UserViewSet(viewsets.ViewSet):
+class UserViewSet(viewsets.GenericViewSet):
     permission_classes = [permissions.AllowAny]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
     def get_queryset(self):
         queryset = User.objects.all()
@@ -76,6 +78,78 @@ class UserViewSet(viewsets.ViewSet):
     def list(self, request):
         queryset = self.get_queryset()
         serializer = UserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def experts(self, request):
+        """API lấy danh sách chuyên gia"""
+        experts = User.objects.filter(role='expert')
+        serializer = UserSerializer(experts, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def link_expert(self, request):
+        """API liên kết user với chuyên gia"""
+        expert_id = request.data.get('expert_id')
+        try:
+            expert = User.objects.get(id=expert_id, role='expert')
+        except User.DoesNotExist:
+            return Response({'detail': 'Không tìm thấy chuyên gia.'}, status=404)
+        user = request.user
+        user.expert = expert
+        user.notified_expert = False  # Đánh dấu chưa thông báo cho chuyên gia
+        user.save()
+        return Response({'detail': f'Liên kết với chuyên gia {expert.username} thành công.'})
+
+    @action(detail=False, methods=['get'], url_path='new-linked-users', permission_classes=[permissions.IsAuthenticated])
+    def new_linked_users(self, request):
+        """API cho chuyên gia lấy danh sách user mới liên kết (chưa thông báo)"""
+        if request.user.role != 'expert':
+            return Response({'detail': 'Chỉ chuyên gia mới có quyền.'}, status=403)
+        new_users = request.user.clients.filter(notified_expert=False)
+        serializer = UserSerializer(new_users, many=True)
+        # Đánh dấu đã thông báo
+        new_users.update(notified_expert=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='my-clients', permission_classes=[permissions.IsAuthenticated])
+    def my_clients(self, request):
+        try:
+            print("User:", request.user)
+            print("Role:", getattr(request.user, 'role', None))
+            print("Clients:", getattr(request.user, 'clients', None))
+            if request.user.role != 'expert':
+                return Response({'detail': 'Chỉ chuyên gia mới có quyền xem danh sách này.'}, status=403)
+            clients = request.user.clients.all()
+            serializer = UserSerializer(clients, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            print("Error in my_clients:", str(e))
+            return Response({'detail': str(e)}, status=400)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def unlink_expert(self, request):
+        """API hủy liên kết chuyên gia"""
+        user = request.user
+        if not user.expert:
+            return Response({'detail': 'Bạn chưa liên kết với chuyên gia nào.'}, status=400)
+        user.expert = None
+        user.save()
+        return Response({'detail': 'Đã hủy liên kết với chuyên gia.'})
+
+    def retrieve(self, request, pk=None):
+        try:
+            pk_int = int(pk)
+            if pk_int <= 0:
+                raise ValueError()
+        except Exception:
+            print("Lỗi retrieve user, pk nhận được:", pk)
+            return Response({'detail': 'Invalid user id.'}, status=400)
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'Không tìm thấy người dùng.'}, status=404)
+        serializer = UserSerializer(user)
         return Response(serializer.data)
 
 # Exercise ViewSet (chỉ list, retrieve)
@@ -238,34 +312,73 @@ class UserStatisticsView(APIView):
         if request.user.role == 'user' and request.user.id != user_id:
             return Response({'detail': 'Permission denied.'}, status=403)
         now = timezone.now().date()
-        week_ago = now - timedelta(days=7)
-        month_ago = now - timedelta(days=30)
-        year_ago = now - timedelta(days=365)
+        start_of_week = now - timedelta(days=now.weekday())  # Thứ 2 đầu tuần
         user = User.objects.filter(id=user_id).first()
         if not user:
             return Response({'detail': 'User not found.'}, status=404)
         # Lấy chỉ số sức khỏe gần nhất
         latest_metrics = HealthMetricsHistory.objects.filter(user_id=user_id).order_by('-date', '-time').first()
-        week_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=week_ago)
-        month_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=month_ago)
-        year_sessions = TrainingSession.objects.filter(schedule__user_id=user_id, schedule__date__gte=year_ago)
-        def total_calories(sessions):
-            return sum([s.exercise.calories_burned if s.exercise else 0 for s in sessions])
+
+        # WEEK: trả về mảng 7 ngày của tuần hiện tại (thứ 2 đến CN)
+        week_data = []
+        for i in range(7):
+            day = start_of_week + timedelta(days=i)
+            sessions = WorkoutSession.objects.filter(
+                user=user,
+                start_time__date=day,
+                is_completed=True
+            )
+            session_count = sessions.count()
+            total_calories = sessions.aggregate(Sum('total_calories'))['total_calories__sum'] or 0
+            week_data.append({
+                'date': day.strftime('%d/%m'),
+                'session_count': session_count,
+                'total_calories': total_calories,
+            })
+
+        # MONTH: trả về mảng 12 tháng
+        month_data = []
+        for m in range(1, 13):
+            sessions = WorkoutSession.objects.filter(
+                user=user,
+                start_time__year=now.year,
+                start_time__month=m,
+                is_completed=True
+            )
+            session_count = sessions.count()
+            total_calories = sessions.aggregate(Sum('total_calories'))['total_calories__sum'] or 0
+            month_data.append({
+                'month': f'{m:02d}/{now.year}',
+                'session_count': session_count,
+                'total_calories': total_calories,
+            })
+
+        # YEAR: trả về mảng các năm có dữ liệu
+        years = WorkoutSession.objects.filter(
+            user=user,
+            is_completed=True
+        ).dates('start_time', 'year')
+        year_data = []
+        for y in years:
+            sessions = WorkoutSession.objects.filter(
+                user=user,
+                start_time__year=y.year,
+                is_completed=True
+            )
+            session_count = sessions.count()
+            total_calories = sessions.aggregate(Sum('total_calories'))['total_calories__sum'] or 0
+            year_data.append({
+                'year': y.year,
+                'session_count': session_count,
+                'total_calories': total_calories,
+            })
+
         data = {
             'bmi': user.bmi,
             'latest_metrics': HealthMetricsHistorySerializer(latest_metrics).data if latest_metrics else None,
-            'week': {
-                'total_sessions': week_sessions.count(),
-                'total_calories': total_calories(week_sessions),
-            },
-            'month': {
-                'total_sessions': month_sessions.count(),
-                'total_calories': total_calories(month_sessions),
-            },
-            'year': {
-                'total_sessions': year_sessions.count(),
-                'total_calories': total_calories(year_sessions),
-            }
+            'week': week_data,
+            'month': month_data,
+            'year': year_data,
         }
         return Response(data, status=200)
 
@@ -621,11 +734,22 @@ class HealthMetricsViewSet(viewsets.ViewSet):
     def get_health_history(self, request):
         """Lấy lịch sử các chỉ số sức khỏe"""
         try:
+            user = request.user
+            user_id = request.query_params.get('user_id')
+            if user.role == 'expert' and user_id:
+                # Chỉ cho phép lấy lịch sử của client đã liên kết
+                try:
+                    client = user.clients.get(id=user_id)
+                    user = client
+                except User.DoesNotExist:
+                    return Response({'detail': 'Bạn không có quyền xem lịch sử sức khỏe user này.'}, status=403)
+            elif user.role == 'user' and user_id and int(user_id) != user.id:
+                return Response({'detail': 'Bạn không có quyền xem lịch sử sức khỏe người khác.'}, status=403)
             # Lấy lịch sử trong 7 ngày gần nhất
             end_date = timezone.now().date()
             start_date = end_date - timedelta(days=7)
             history = HealthMetricsHistory.objects.filter(
-                user=request.user,
+                user=user,
                 date__range=[start_date, end_date]
             ).order_by('-date', '-time')
             serializer = HealthMetricsHistorySerializer(history, many=True)
@@ -661,9 +785,19 @@ class TrainingStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         user = request.user
-        mode = request.GET.get('mode', 'week')
+        user_id = request.GET.get('user_id')
+        # Nếu là chuyên gia và có user_id, kiểm tra quyền truy cập client
+        if user.role == 'expert' and user_id:
+            try:
+                client = user.clients.get(id=user_id)
+                user = client
+            except User.DoesNotExist:
+                return Response({'detail': 'Bạn không có quyền xem thống kê user này.'}, status=403)
+        elif user.role == 'user' and user_id and int(user_id) != user.id:
+            return Response({'detail': 'Bạn không có quyền xem thống kê người khác.'}, status=403)
         today = timezone.now().date()
         data = []
+        mode = request.GET.get('mode', 'week')
         if mode == 'week':
             # Lấy ngày đầu tuần (Chủ nhật)
             start_of_week = today - timedelta(days=today.weekday() + 1 if today.weekday() < 6 else 0)

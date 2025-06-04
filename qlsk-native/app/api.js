@@ -207,8 +207,10 @@ export const getTrainingHistory = () => {
 };
 
 // Lấy thống kê tập luyện đa chế độ (tuần/tháng/năm)
-export const getTrainingStatistics = (mode = "week") => {
-  return api.get(`/training-statistics/?mode=${mode}`);
+export const getTrainingStatistics = (mode = "week", userId = null) => {
+  let url = `/training-statistics/?mode=${mode}`;
+  if (userId) url += `&user_id=${userId}`;
+  return api.get(url);
 };
 
 export const getWaterSessions = () => api.get("/water-sessions/");
@@ -220,19 +222,27 @@ export const updateBMI = (bmi) => {
   return api.put(API_ENDPOINTS.PROFILE, { bmi });
 };
 
-// Chat APIs
-export const sendMessage = async (messageData) => {
-  return await api.post("/chat-messages/", messageData);
-};
+// Lấy danh sách chuyên gia
+export const getExperts = () => api.get("/users/experts/");
 
-export const getChatHistory = async (userId, expertId) => {
-  return await api.get(`/chat-history/${userId}/${expertId}/`);
-};
+// Liên kết user với chuyên gia
+export const linkExpert = (expert_id) =>
+  api.post("/users/link-expert/", { expert_id });
 
-export const markMessagesAsRead = async (messageIds) => {
-  return await api.post("/chat-messages/mark_as_read/", {
-    message_ids: messageIds,
-  });
+// Lấy danh sách user đã liên kết với chuyên gia (dành cho chuyên gia)
+export const getMyClients = () => api.get("/users/my-clients/");
+
+// Hủy liên kết chuyên gia
+export const unlinkExpert = () => api.post("/users/unlink-expert/");
+
+// Lấy danh sách user mới liên kết (chưa thông báo) cho chuyên gia
+export const getNewLinkedUsers = () => api.get("/users/new-linked-users/");
+
+// Lấy thông tin chi tiết user theo id
+export const getUserDetail = (userId) => api.get(`/users/${userId}/`);
+
+export const getHealthMetricsHistoryByUser = (userId) => {
+  return api.get(`/health-metrics/history/?user_id=${userId}`);
 };
 
 export default api;

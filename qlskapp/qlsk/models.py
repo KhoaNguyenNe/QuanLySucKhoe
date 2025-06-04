@@ -24,6 +24,7 @@ class User(AbstractUser):
         on_delete=models.SET_NULL,
         related_name='clients'
     )
+    notified_expert = models.BooleanField(default=False, help_text="Đã thông báo cho chuyên gia khi user liên kết")
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
